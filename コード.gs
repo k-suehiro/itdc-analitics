@@ -10,7 +10,18 @@ function processQuery(viewType, period) {
   try {
     const sql = buildSql(viewType, period);
     const result = runBigQuery(sql);
-    return { success: true, sql: sql, data: result };
+
+    // rd・稼働率ビュー以外はTDのみデータも取得しクライアント側トグルに使用
+    const needsTdSplit = viewType !== 'rd'
+      && viewType !== 'utilization_yakumu'
+      && viewType !== 'utilization';
+    let tdData = null;
+    if (needsTdSplit) {
+      const tdSql = buildSql(viewType, period, true);
+      tdData = runBigQuery(tdSql);
+    }
+
+    return { success: true, sql: sql, data: result, tdData: tdData };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -35,7 +46,9 @@ function getMonths(period) {
   return months;
 }
 
-function buildSql(viewType, period) {
+// tdOnly = true のとき TD製番のみに絞ったSQLを生成（クライアント側差分計算用）
+function buildSql(viewType, period, tdOnly) {
+  tdOnly = !!tdOnly;
   if (viewType === 'utilization_yakumu' || viewType === 'utilization') {
     return buildUtilizationSql(viewType, period);
   }
@@ -97,8 +110,7 @@ function buildSql(viewType, period) {
           ELSE CONCAT('その他(', LEFT(job_id, 2), ')')
         END`,
       label: '請求先部門',
-      // TD（研究開発社内）は除外
-      where: "AND LEFT(job_id, 2) != 'TD'",
+      where: '',
       orderBy: `CASE dim
           WHEN '東京事業所'             THEN  1
           WHEN '浜松事業所'             THEN  2
@@ -130,6 +142,8 @@ function buildSql(viewType, period) {
   };
 
   const dim = dimConfigs[viewType];
+  // tdOnly モード: TD製番のみに絞る（rd は dim.where で既にTD限定）
+  const tdFilter = (tdOnly && viewType !== 'rd') ? "AND LEFT(job_id, 2) = 'TD'" : '';
 
   const monthCols = months.map(m =>
     `ROUND(SUM(CASE WHEN FORMAT_DATE('%Y-%m', report_date) = '${m}' THEN hours ELSE 0 END), 1) AS \`${m}\``
@@ -144,6 +158,7 @@ function buildSql(viewType, period) {
   WHERE report_date BETWEEN '${dates.start}' AND '${dates.end}'
   AND job_id IS NOT NULL
   AND job_id != ''
+  ${tdFilter}
   ${dim.where}
 )
 SELECT
@@ -166,14 +181,13 @@ function buildUtilizationSql(viewType, period) {
   const dates  = periodDates[period];
   const months = getMonths(period);
 
-  // 役務稼働率: TD製番を除くjob_id有り時間 / 総時間
+  // 役務稼働率: TD製番を除くjob_id有り時間 / 総時間（定義固定）
   // 稼働率　　: job_id有り時間 / 総時間
   const isYakumu  = viewType === 'utilization_yakumu';
   const numerator = isYakumu
     ? "SUM(CASE WHEN job_id IS NOT NULL AND job_id != '' AND LEFT(job_id, 2) != 'TD' THEN hours ELSE 0 END)"
     : "SUM(CASE WHEN job_id IS NOT NULL AND job_id != ''                              THEN hours ELSE 0 END)";
 
-  // 分母は全レコード（job_idなし含む）の総時間
   const monthCols = months.map(m =>
     `ROUND(MAX(CASE WHEN ym = '${m}' THEN SAFE_DIVIDE(num_hours, total_hours) * 100 END), 1) AS \`${m}\``
   ).join(',\n    ');

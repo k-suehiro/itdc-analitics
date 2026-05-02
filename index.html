@@ -4,6 +4,7 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     :root {
       --primary:      #6a87d6;
@@ -210,6 +211,35 @@
     .toggle-group button:not(.active):hover:not(:disabled) { background: white; color: var(--text); }
     .toggle-group button:disabled { opacity: 0.35; cursor: not-allowed; }
 
+    /* TD CHECKBOX */
+    .td-checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      background: white;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .td-checkbox-wrap:hover { background: var(--bg); border-color: #c7d2de; }
+    .td-checkbox-wrap input[type="checkbox"] {
+      width: 15px; height: 15px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .td-checkbox-wrap.disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     /* RUN BUTTON */
     .run-btn {
       display: inline-flex;
@@ -399,6 +429,43 @@
       font-size: 13px;
       overflow-x: auto;
       line-height: 1.75;
+    }
+
+    /* ═══════════════════════════════════════
+       CHART
+    ═══════════════════════════════════════ */
+    #chartBlock { display: none; margin-bottom: 14px; }
+    .chart-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+      border: 1px solid rgba(226,232,240,0.9);
+    }
+    .chart-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chart-title i { color: var(--primary); font-size: 13px; }
+    .chart-n-note {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 320px;
     }
 
     /* ─────────────────────────────────────
@@ -622,6 +689,17 @@
         </div>
       </div>
 
+      <div class="control-group">
+        <div class="section-label">
+          <i class="fa-solid fa-filter"></i>
+          TD&#x88FD;&#x756A;
+        </div>
+        <label class="td-checkbox-wrap" id="tdCheckboxWrap">
+          <input type="checkbox" id="includeTD" checked onchange="setIncludeTD()">
+          TD&#x88FD;&#x756A;&#x3092;&#x542B;&#x3080;
+        </label>
+      </div>
+
       <button class="run-btn" id="runBtn" onclick="runQuery()">
         <i class="fa-solid fa-bolt"></i>&#x96C6;&#x8A08;&#x5B9F;&#x884C;
       </button>
@@ -680,9 +758,33 @@
         <div class="result-sub" id="resultSub"></div>
       </div>
       <div class="result-actions">
-        <button class="sql-toggle-btn" onclick="toggleSql()">
-          <i class="fa-solid fa-code"></i>SQL &#x8868;&#x793A; / &#x975E;&#x8868;&#x793A;
+        <button class="sql-toggle-btn" onclick="toggleChart()">
+          <i class="fa-solid fa-chart-bar"></i>&#x30B0;&#x30E9;&#x30D5;
         </button>
+        <button class="sql-toggle-btn" onclick="toggleSql()">
+          <i class="fa-solid fa-code"></i>SQL
+        </button>
+      </div>
+    </div>
+
+    <!-- chart block -->
+    <div id="chartBlock">
+      <div class="chart-card">
+        <div class="chart-toolbar">
+          <div class="chart-title">
+            <i class="fa-solid fa-chart-bar"></i>
+            <span id="chartTitleText"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="chart-n-note" id="chartNNote"></div>
+            <button class="sql-toggle-btn" id="chartAllBtn" onclick="toggleChartAll()" style="display:none">
+              <i class="fa-solid fa-list"></i>全件表示
+            </button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="myChart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -733,9 +835,50 @@
 <script>
   var currentView  = 'task_type';
   var currentValue = 'hours';
+  var includeTD    = true;
   var sortState    = { col: null, asc: true };
   var lastData     = null;
   var totalRows    = 0; // 全行数（フィルタ前）
+
+  function setIncludeTD() {
+    includeTD = document.getElementById('includeTD').checked;
+    if (lastData) {
+      renderTable();
+      if (document.getElementById('chartBlock').style.display === 'block') renderChart();
+      if (document.getElementById('searchInput').value) filterTable();
+    }
+  }
+
+  // TD込み/抜きを切り替えた表示行を返す（BigQuery再クエリなし）
+  function getDisplayRows() {
+    if (!lastData) return [];
+    if (includeTD || !lastData.tdRows || lastData.tdRows.length === 0) {
+      return lastData.rows;
+    }
+    var schema   = lastData.schema;
+    var totalCol = schema[schema.length - 1];
+    var tdMap    = {};
+    lastData.tdRows.forEach(function(row) {
+      tdMap[row[schema[0]]] = row;
+    });
+    var result = lastData.rows.map(function(row) {
+      var dim   = row[schema[0]];
+      var tdRow = tdMap[dim];
+      if (!tdRow) return row;
+      var r = {};
+      r[schema[0]] = dim;
+      schema.slice(1).forEach(function(col) {
+        var v  = parseFloat(row[col]   || 0);
+        var td = parseFloat(tdRow[col] || 0);
+        r[col] = Math.round((v - td) * 10) / 10;
+      });
+      return r;
+    });
+    // TD作業しかない行（合計がゼロになった行）は除外
+    return result.filter(function(row) {
+      return parseFloat(row[totalCol] || 0) > 0;
+    });
+  }
 
   function isUtilView(v) {
     return v === 'utilization_yakumu' || v === 'utilization';
@@ -749,6 +892,13 @@
     var util = isUtilView(currentView);
     var toggleBtns = document.querySelectorAll('#valueToggle button');
     for (var j = 0; j < toggleBtns.length; j++) toggleBtns[j].disabled = util;
+    // rd・稼働率ビューはTDチェックボックス対象外
+    var tdWrap = document.getElementById('tdCheckboxWrap');
+    if (currentView === 'rd' || isUtilView(currentView)) {
+      tdWrap.classList.add('disabled');
+    } else {
+      tdWrap.classList.remove('disabled');
+    }
     lastData = null;
   }
 
@@ -759,6 +909,7 @@
     btn.classList.add('active');
     if (lastData) {
       renderTable();
+      if (document.getElementById('chartBlock').style.display === 'block') renderChart();
       // 再描画後に検索キーワードが残っていれば再フィルタ
       if (document.getElementById('searchInput').value) filterTable();
     }
@@ -791,9 +942,10 @@
     document.getElementById('runBtn').disabled = false;
     if (!res.success) { alert('エラー: ' + res.error); return; }
 
-    sortState = { col: null, asc: true };
-    lastData  = res.data;
-    totalRows = res.data.rows.length;
+    sortState    = { col: null, asc: true };
+    chartShowAll = false;
+    lastData     = res.data;
+    lastData.tdRows = (res.tdData && res.tdData.rows) ? res.tdData.rows : null;
 
     document.getElementById('sqlOutput').textContent = res.sql;
 
@@ -829,6 +981,7 @@
     document.getElementById('searchRow').style.display = 'flex';
 
     renderTable();
+    if (document.getElementById('chartBlock').style.display === 'block') renderChart();
     document.getElementById('resultArea').style.display = 'block';
   }
 
@@ -847,13 +1000,15 @@
     document.getElementById('resultTitleText').textContent =
       periodText + ' ／ ' + VIEW_LABELS[currentView] + ' ' + unit;
 
-    updateSubBadges(totalRows, totalRows); // 初期は全行表示
+    var displayRows = getDisplayRows();
+    totalRows = displayRows.length;
+    updateSubBadges(totalRows, totalRows);
 
     var tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
 
-    for (var r = 0; r < lastData.rows.length; r++) {
-      var row = lastData.rows[r];
+    for (var r = 0; r < displayRows.length; r++) {
+      var row = displayRows[r];
       var tr  = document.createElement('tr');
       for (var i = 0; i < schema.length; i++) {
         var col = schema[i];
@@ -1010,6 +1165,162 @@
   function toggleSql() {
     var block = document.getElementById('sqlBlock');
     block.style.display = block.style.display === 'block' ? 'none' : 'block';
+  }
+
+  /* ─── グラフ ─────────────────────────────────── */
+  var chartInstance = null;
+  var chartShowAll  = false;
+  var PALETTE = [
+    '#6a87d6','#7c3aed','#06b6d4','#10b981','#f59e0b',
+    '#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316'
+  ];
+  var TOP_N = 10;
+
+  function toggleChart() {
+    var block = document.getElementById('chartBlock');
+    var visible = block.style.display === 'block';
+    if (visible) {
+      block.style.display = 'none';
+    } else {
+      block.style.display = 'block';
+      if (lastData) renderChart();
+    }
+  }
+
+  function toggleChartAll() {
+    chartShowAll = !chartShowAll;
+    var btn = document.getElementById('chartAllBtn');
+    btn.innerHTML = chartShowAll
+      ? '<i class="fa-solid fa-list"></i>上位' + TOP_N + '件'
+      : '<i class="fa-solid fa-list"></i>全件表示';
+    renderChart();
+  }
+
+  function renderChart() {
+    if (!lastData) return;
+
+    var isPercent = isUtilView(currentView);
+    var isAmount  = currentValue === 'amount' && !isPercent;
+    var schema    = lastData.schema;
+    var rows      = getDisplayRows();
+    var lastCol   = schema[schema.length - 1];
+    var unit      = isPercent ? '%' : isAmount ? '千円' : 'h';
+
+    // 合計値で降順ソート、chartShowAll なら全件・それ以外は上位 TOP_N 件
+    var allSorted = rows.slice().sort(function(a, b) {
+      return parseFloat(b[lastCol] || 0) - parseFloat(a[lastCol] || 0);
+    });
+    var sorted = chartShowAll ? allSorted : allSorted.slice(0, TOP_N);
+    var hasMore = allSorted.length > TOP_N;
+
+    // 全件/上位切り替えボタン
+    var allBtn = document.getElementById('chartAllBtn');
+    allBtn.style.display = hasMore ? 'inline-flex' : 'none';
+    if (hasMore) {
+      allBtn.innerHTML = chartShowAll
+        ? '<i class="fa-solid fa-list"></i>上位' + TOP_N + '件'
+        : '<i class="fa-solid fa-list"></i>全件表示';
+    }
+
+    // 横棒グラフは件数に応じて高さを動的調整（折れ線は固定）
+    var chartWrap = document.querySelector('.chart-wrap');
+    chartWrap.style.height = isPercent ? '320px' : Math.max(320, sorted.length * 34) + 'px';
+
+    var ctx = document.getElementById('myChart').getContext('2d');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+    var periodText = document.getElementById('period').options[document.getElementById('period').selectedIndex].text;
+    document.getElementById('chartTitleText').textContent =
+      periodText + ' ／ ' + VIEW_LABELS[currentView];
+    document.getElementById('chartNNote').textContent =
+      (!chartShowAll && hasMore) ? '上位 ' + TOP_N + ' 件表示' : sorted.length + ' 件';
+
+    if (isPercent) {
+      // 折れ線グラフ：月別稼働率推移
+      var monthCols = schema.slice(1, schema.length - 1);
+      var datasets = sorted.map(function(row, i) {
+        return {
+          label: row[schema[0]] || '(未設定)',
+          data: monthCols.map(function(m) {
+            var v = parseFloat(row[m]);
+            return isNaN(v) ? null : v;
+          }),
+          borderColor: PALETTE[i % PALETTE.length],
+          backgroundColor: PALETTE[i % PALETTE.length] + '22',
+          tension: 0.35,
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          spanGaps: true
+        };
+      });
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: monthCols.map(function(m) {
+            return m.replace(/^(\d{4})-(\d{2})$/, function(_, y, mo) { return y.slice(2) + '/' + mo; });
+          }),
+          datasets: datasets
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } },
+            tooltip: {
+              callbacks: {
+                label: function(c) {
+                  return c.dataset.label + ': ' + (c.parsed.y != null ? c.parsed.y.toFixed(1) + '%' : '-');
+                }
+              }
+            }
+          },
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: function(v) { return v + '%'; }, font: { size: 12 } } },
+            x: { ticks: { font: { size: 12 } } }
+          }
+        }
+      });
+
+    } else {
+      // 横棒グラフ：合計値ランキング
+      var labels = sorted.map(function(r) { return r[schema[0]] || '(未設定)'; });
+      var data   = sorted.map(function(r) {
+        var raw = parseFloat(r[lastCol] || 0);
+        return isNaN(raw) ? 0 : (isAmount ? parseFloat((raw * 4.2).toFixed(1)) : raw);
+      });
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: unit,
+            data: data,
+            backgroundColor: PALETTE.slice(0, data.length).map(function(c) { return c + 'bb'; }),
+            borderColor:     PALETTE.slice(0, data.length),
+            borderWidth: 1,
+            borderRadius: 5
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(c) {
+                  return c.parsed.x.toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' ' + unit;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { callback: function(v) { return v.toLocaleString('ja-JP') + ' ' + unit; }, font: { size: 12 } } },
+            y: { ticks: { font: { size: 12 } } }
+          }
+        }
+      });
+    }
   }
 </script>
 </body>
