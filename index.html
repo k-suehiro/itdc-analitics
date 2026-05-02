@@ -19,7 +19,7 @@
       --border:       #e2e8f0;
       --hover:        #f8fafc;
       --header-grad:  linear-gradient(135deg, #2d4275 0%, #6a87d6 55%, #7c3aed 100%);
-      --content-width: 1080px;
+      --content-width: min(1600px, calc(100vw - 48px));
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -557,7 +557,7 @@
       font-size: 13px;
       font-weight: 700;
       text-align: right;
-      padding: 11px 15px;
+      padding: 9px 10px;
       border-bottom: 2px solid var(--border);
       white-space: nowrap;
       cursor: pointer;
@@ -565,14 +565,14 @@
       letter-spacing: 0.3px;
       transition: background 0.12s;
     }
-    th:first-child { text-align: left; min-width: 160px; }
+    th:first-child { text-align: left; min-width: 130px; }
     th:hover { background: #eef2f7; }
     th .sort-arrow { margin-left: 4px; font-size: 9px; opacity: 0.28; transition: opacity 0.14s; }
     th.sort-asc  .sort-arrow,
     th.sort-desc .sort-arrow { opacity: 1; color: var(--primary); }
 
     td {
-      padding: 10px 15px;
+      padding: 8px 10px;
       font-size: 15px;
       border-bottom: 1px solid #f1f5f9;
       text-align: right;
@@ -700,7 +700,7 @@
         </label>
       </div>
 
-      <button class="run-btn" id="runBtn" onclick="runQuery()">
+      <button class="run-btn" id="runBtn" onclick="runQuery()" style="margin-left:auto">
         <i class="fa-solid fa-bolt"></i>&#x96C6;&#x8A08;&#x5B9F;&#x884C;
       </button>
 
