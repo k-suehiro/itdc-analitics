@@ -1,0 +1,22 @@
+{
+    "timeZone": "Asia/Tokyo",
+    "dependencies": {
+      "enabledAdvancedServices": [
+        {
+          "userSymbol": "BigQuery",
+          "version": "v2",
+          "serviceId": "bigquery"
+        }
+      ]
+    },
+    "exceptionLogging": "STACKDRIVER",
+    "runtimeVersion": "V8",
+    "webapp": {
+      "executeAs": "USER_DEPLOYING",
+      "access": "MYSELF"
+    },
+    "oauthScopes": [
+      "https://www.googleapis.com/auth/bigquery",
+      "https://www.googleapis.com/auth/drive"
+    ]
+  }

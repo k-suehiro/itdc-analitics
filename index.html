@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    :root {
+      --primary:      #6a87d6;
+      --primary-dark: #4f6dbf;
+      --primary-light:#edf0fb;
+      --purple:       #7c3aed;
+      --purple-light: #f5f3ff;
+      --bg:           #f0f4f8;
+      --card:         #ffffff;
+      --text:         #1e293b;
+      --muted:        #64748b;
+      --border:       #e2e8f0;
+      --hover:        #f8fafc;
+      --header-grad:  linear-gradient(135deg, #2d4275 0%, #6a87d6 55%, #7c3aed 100%);
+      --content-width: 1080px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ═══════════════════════════════════════
+       HEADER  (full-width gradient, inner centered)
+    ═══════════════════════════════════════ */
+    .app-header {
+      background: var(--header-grad);
+      box-shadow: 0 4px 24px rgba(106,135,214,0.30);
+    }
+    .header-inner {
+      max-width: var(--content-width);
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+    .header-icon-wrap {
+      flex-shrink: 0;
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .header-brand h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+    }
+    .header-brand p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.68);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-badge {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.13);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 20px;
+      padding: 5px 13px;
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.88);
+      white-space: nowrap;
+    }
+    .header-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; }
+
+    /* ═══════════════════════════════════════
+       MAIN CONTENT  (centered)
+    ═══════════════════════════════════════ */
+    .main-body {
+      max-width: var(--content-width);
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+    }
+
+    /* ═══════════════════════════════════════
+       CONTROLS CARD
+    ═══════════════════════════════════════ */
+    .controls-card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 20px 22px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+      border: 1px solid rgba(226,232,240,0.9);
+    }
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      margin-bottom: 8px;
+    }
+    .section-label i { font-size: 12px; color: var(--primary); }
+
+    /* TOP ROW: period / value / run */
+    .controls-top {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .control-group { display: flex; flex-direction: column; }
+
+    /* SELECT */
+    .select-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .select-wrapper .sel-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--primary);
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    select {
+      padding: 8px 30px 8px 30px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: 15px;
+      background: white;
+      cursor: pointer;
+      color: var(--text);
+      appearance: none;
+      -webkit-appearance: none;
+      width: 280px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(106,135,214,0.10);
+    }
+    .select-caret {
+      position: absolute;
+      right: 9px;
+      color: var(--muted);
+      font-size: 10px;
+      pointer-events: none;
+    }
+
+    /* VALUE TOGGLE */
+    .toggle-group {
+      display: flex;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .toggle-group button {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--muted);
+      border-radius: 6px;
+      transition: all 0.16s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .toggle-group button.active {
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(106,135,214,0.32);
+    }
+    .toggle-group button:not(.active):hover:not(:disabled) { background: white; color: var(--text); }
+    .toggle-group button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* RUN BUTTON */
+    .run-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 22px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.17s;
+      box-shadow: 0 3px 12px rgba(106,135,214,0.38);
+      white-space: nowrap;
+    }
+    .run-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 18px rgba(106,135,214,0.46);
+    }
+    .run-btn:active:not(:disabled) { transform: translateY(0); }
+    .run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* AXIS BUTTONS */
+    .axis-group { display: flex; gap: 7px; flex-wrap: wrap; }
+    .axis-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.16s;
+      font-weight: 500;
+    }
+    .axis-btn i { font-size: 11px; }
+    .axis-btn:hover:not(.active) { background: var(--bg); border-color: #c7d2de; color: var(--text); }
+    .axis-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      box-shadow: 0 1px 6px rgba(106,135,214,0.16);
+    }
+    .axis-btn.util-btn.active {
+      border-color: var(--purple);
+      background: var(--purple-light);
+      color: var(--purple);
+      box-shadow: 0 1px 6px rgba(124,58,237,0.16);
+    }
+    .axis-btn.util-btn:not(.active):hover { border-color: #c4b5fd; color: var(--purple); }
+
+    /* ═══════════════════════════════════════
+       LOADING
+    ═══════════════════════════════════════ */
+    #loading { display: none; text-align: center; padding: 72px 24px; }
+    .loading-inner {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .loading-icon-wrap {
+      width: 60px; height: 60px;
+      background: var(--primary-light);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .loading-icon-wrap i {
+      font-size: 26px;
+      color: var(--primary);
+      animation: pulse-bounce 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-bounce {
+      0%, 100% { transform: scale(1);    opacity: 1; }
+      50%       { transform: scale(1.14); opacity: 0.72; }
+    }
+    .loading-text { font-size: 16px; font-weight: 600; color: var(--muted); }
+    .loading-sub  { font-size: 13px; color: #94a3b8; }
+
+    /* ═══════════════════════════════════════
+       RESULT AREA
+    ═══════════════════════════════════════ */
+    #resultArea { display: none; animation: fadeSlide 0.28s ease-out; }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* result meta bar */
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .result-title-block { flex: 1; min-width: 200px; }
+    .result-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .result-title i { color: var(--primary); font-size: 14px; }
+    .result-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 9px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .badge.highlight {
+      background: var(--primary-light);
+      border-color: #c5d2f0;
+      color: var(--primary);
+    }
+
+    .result-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .sql-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.14s;
+      white-space: nowrap;
+    }
+    .sql-toggle-btn:hover { background: var(--bg); border-color: #c7d2de; color: var(--text); }
+    .sql-toggle-btn i { font-size: 11px; color: var(--primary); }
+
+    /* SQL block */
+    #sqlBlock { display: none; margin-bottom: 14px; }
+    .sql-card {
+      background: #0f172a;
+      border-radius: 13px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    }
+    .sql-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 15px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    .sql-toolbar span.label { font-size: 11.5px; color: #94a3b8; font-weight: 600; letter-spacing: 0.4px; margin-left: 4px; }
+    .sql-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .sql-dot.red    { background: #ef4444; }
+    .sql-dot.yellow { background: #f59e0b; }
+    .sql-dot.green  { background: #22c55e; }
+    pre {
+      background: transparent;
+      color: #a8bde8;
+      padding: 16px 18px;
+      font-size: 13px;
+      overflow-x: auto;
+      line-height: 1.75;
+    }
+
+    /* ─────────────────────────────────────
+       SEARCH BAR
+    ───────────────────────────────────── */
+    .search-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: #fafbfd;
+      flex-wrap: wrap;
+    }
+    .search-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+      max-width: 340px;
+    }
+    .search-input-wrap .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 12px;
+      pointer-events: none;
+      transition: color 0.15s;
+    }
+    .search-input-wrap:focus-within .search-icon { color: var(--primary); }
+    #searchInput {
+      width: 100%;
+      padding: 7px 30px 7px 30px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    #searchInput:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(106,135,214,0.10);
+    }
+    #searchInput::placeholder { color: #94a3b8; }
+    .search-clear-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 2px 4px;
+      display: none;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.12s;
+    }
+    .search-clear-btn:hover { color: var(--text); }
+    .search-hint {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .search-hint .match-count { font-weight: 700; color: var(--primary); }
+    .search-hint .no-match    { color: #f59e0b; font-weight: 700; }
+
+    /* ═══════════════════════════════════════
+       TABLE CARD
+    ═══════════════════════════════════════ */
+    .table-card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+      overflow: hidden;
+      border: 1px solid rgba(226,232,240,0.9);
+    }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: right;
+      padding: 11px 15px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      letter-spacing: 0.3px;
+      transition: background 0.12s;
+    }
+    th:first-child { text-align: left; min-width: 160px; }
+    th:hover { background: #eef2f7; }
+    th .sort-arrow { margin-left: 4px; font-size: 9px; opacity: 0.28; transition: opacity 0.14s; }
+    th.sort-asc  .sort-arrow,
+    th.sort-desc .sort-arrow { opacity: 1; color: var(--primary); }
+
+    td {
+      padding: 10px 15px;
+      font-size: 15px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: right;
+      white-space: nowrap;
+    }
+    td:first-child { text-align: left; font-weight: 600; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8fafc; }
+    tbody tr:nth-child(even) td { background: #fafbfd; }
+    tbody tr:nth-child(even):hover td { background: #f1f5f9; }
+
+    /* hidden by search */
+    tbody tr.hidden-row { display: none; }
+
+    /* 合計列 */
+    td.col-total, th.col-total {
+      background: linear-gradient(135deg, #edf0fb, #eef1fb) !important;
+      color: var(--primary) !important;
+      font-weight: 800 !important;
+      border-left: 2px solid #c5d2f0;
+    }
+    th.col-total { border-bottom-color: #c5d2f0; }
+
+    /* ゼロ値 */
+    .zero { color: #cbd5e1 !important; font-weight: 400 !important; }
+
+    /* search highlight */
+    .hl { background: #fef08a; border-radius: 2px; padding: 0 1px; }
+
+    /* ═══════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .main-body { padding: 16px 14px 32px; }
+      .header-inner { padding: 14px 16px; }
+      .header-badge { display: none; }
+      .header-brand p { display: none; }
+      select { width: 100%; }
+      .controls-top { flex-direction: column; align-items: stretch; gap: 12px; }
+      .run-btn { justify-content: center; }
+      .result-header { flex-direction: column; gap: 8px; }
+      .result-actions { align-self: flex-start; }
+      .search-input-wrap { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .axis-btn { font-size: 13px; padding: 6px 10px; }
+      .controls-card { padding: 16px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="header-icon-wrap">
+        <i class="fa-solid fa-chart-column"></i>
+      </div>
+      <div>
+        <h1>ITDC Analytics</h1>
+        <p>BigQuery &#x96C6;&#x8A08;&#x30EC;&#x30DD;&#x30FC;&#x30C8;</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="dot"></span>
+      BigQuery Connected
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════
+     MAIN BODY
+════════════════════════════════════════════ -->
+<div class="main-body">
+
+  <!-- ── CONTROLS CARD ── -->
+  <div class="controls-card">
+
+    <!-- Row 1: period / value / run -->
+    <div class="controls-top">
+
+      <div class="control-group">
+        <div class="section-label">
+          <i class="fa-regular fa-calendar-days"></i>
+          &#x5BFE;&#x8C61;&#x671F;
+        </div>
+        <div class="select-wrapper">
+          <i class="fa-solid fa-layer-group sel-icon"></i>
+          <select id="period">
+            <option value="42">42&#x671F;&#xFF08;2025&#x5E74;7&#x6708;&#xFF5E;2026&#x5E74;3&#x6708;&#xFF09;</option>
+            <option value="41">41&#x671F;&#xFF08;2024&#x5E74;7&#x6708;&#xFF5E;2025&#x5E74;6&#x6708;&#xFF09;</option>
+            <option value="40">40&#x671F;&#xFF08;2023&#x5E74;7&#x6708;&#xFF5E;2024&#x5E74;6&#x6708;&#xFF09;</option>
+            <option value="39">39&#x671F;&#xFF08;2022&#x5E74;7&#x6708;&#xFF5E;2023&#x5E74;6&#x6708;&#xFF09;</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-caret"></i>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="section-label">
+          <i class="fa-solid fa-sliders"></i>
+          &#x96C6;&#x8A08;&#x5024;
+        </div>
+        <div class="toggle-group" id="valueToggle">
+          <button class="active" onclick="setValueType('hours', this)">
+            <i class="fa-regular fa-clock"></i>&#x6642;&#x9593;&#xFF08;h&#xFF09;
+          </button>
+          <button onclick="setValueType('amount', this)">
+            <i class="fa-solid fa-yen-sign"></i>&#x91D1;&#x984D;&#xFF08;&#x5343;&#x5186;&#xFF09;
+          </button>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runQuery()">
+        <i class="fa-solid fa-bolt"></i>&#x96C6;&#x8A08;&#x5B9F;&#x884C;
+      </button>
+
+    </div>
+
+    <!-- Row 2: axis -->
+    <div>
+      <div class="section-label">
+        <i class="fa-solid fa-table-cells-large"></i>
+        &#x96C6;&#x8A08;&#x8EF8;
+      </div>
+      <div class="axis-group">
+        <button class="axis-btn active" data-view="task_type" onclick="setViewType(this)">
+          <i class="fa-solid fa-list-check"></i>&#x4F5C;&#x696D;&#x9805;&#x76EE;        </button>
+        <button class="axis-btn" data-view="user_name" onclick="setViewType(this)">
+          <i class="fa-solid fa-users"></i>&#x793E;&#x54E1;        </button>
+        <button class="axis-btn" data-view="client" onclick="setViewType(this)">
+          <i class="fa-solid fa-building"></i>&#x9867;&#x5BA2;        </button>
+        <button class="axis-btn" data-view="department" onclick="setViewType(this)">
+          <i class="fa-solid fa-sitemap"></i>&#x8ACB;&#x6C42;&#x5148;&#x90E8;&#x9580;        </button>
+        <button class="axis-btn" data-view="rd" onclick="setViewType(this)">
+          <i class="fa-solid fa-flask"></i>&#x7814;&#x7A76;&#x958B;&#x767A;        </button>
+        <button class="axis-btn util-btn" data-view="utilization_yakumu" onclick="setViewType(this)">
+          <i class="fa-solid fa-gauge-high"></i>&#x5F79;&#x52D9;&#x7A3C;&#x50CD;&#x7387;&#xFF08;&#x793E;&#x54E1;&#xFF09;
+        </button>
+        <button class="axis-btn util-btn" data-view="utilization" onclick="setViewType(this)">
+          <i class="fa-solid fa-gauge"></i>&#x7A3C;&#x50CD;&#x7387;&#xFF08;&#x793E;&#x54E1;&#xFF09;
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /controls-card -->
+
+  <!-- ── LOADING ── -->
+  <div id="loading">
+    <div class="loading-inner">
+      <div class="loading-icon-wrap">
+        <i class="fa-solid fa-database"></i>
+      </div>
+      <div class="loading-text">BigQuery &#x96C6;&#x8A08;&#x4E2D;&#x2026;</div>
+      <div class="loading-sub">&#x3057;&#x3070;&#x3089;&#x304F;&#x304A;&#x5F85;&#x3061;&#x304F;&#x3060;&#x3055;&#x3044;</div>
+    </div>
+  </div>
+
+  <!-- ── RESULT AREA ── -->
+  <div id="resultArea">
+
+    <!-- meta bar -->
+    <div class="result-header">
+      <div class="result-title-block">
+        <div class="result-title">
+          <i class="fa-solid fa-table-list"></i>
+          <span id="resultTitleText"></span>
+        </div>
+        <div class="result-sub" id="resultSub"></div>
+      </div>
+      <div class="result-actions">
+        <button class="sql-toggle-btn" onclick="toggleSql()">
+          <i class="fa-solid fa-code"></i>SQL &#x8868;&#x793A; / &#x975E;&#x8868;&#x793A;
+        </button>
+      </div>
+    </div>
+
+    <!-- SQL block -->
+    <div id="sqlBlock">
+      <div class="sql-card">
+        <div class="sql-toolbar">
+          <span class="sql-dot red"></span>
+          <span class="sql-dot yellow"></span>
+          <span class="sql-dot green"></span>
+          <i class="fa-solid fa-code" style="color:#475569;font-size:11px;margin-left:6px"></i>
+          <span class="label">BigQuery SQL</span>
+        </div>
+        <pre id="sqlOutput"></pre>
+      </div>
+    </div>
+
+    <!-- table card (search bar + table) -->
+    <div class="table-card">
+
+      <!-- search bar -->
+      <div class="search-bar-row" id="searchRow" style="display:none">
+        <div class="search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="searchInput"
+                 placeholder="&#x884C;&#x3092;&#x7D5E;&#x308A;&#x8FBC;&#x3080;&#x2026;"
+                 oninput="filterTable()">
+          <button class="search-clear-btn" id="searchClear" onclick="clearSearch()" title="&#x30AF;&#x30EA;&#x30A2;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="search-hint" id="searchHint"></div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+    </div><!-- /table-card -->
+
+  </div><!-- /resultArea -->
+
+</div><!-- /main-body -->
+
+<script>
+  var currentView  = 'task_type';
+  var currentValue = 'hours';
+  var sortState    = { col: null, asc: true };
+  var lastData     = null;
+  var totalRows    = 0; // 全行数（フィルタ前）
+
+  function isUtilView(v) {
+    return v === 'utilization_yakumu' || v === 'utilization';
+  }
+
+  function setViewType(btn) {
+    var btns = document.querySelectorAll('.axis-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    var util = isUtilView(currentView);
+    var toggleBtns = document.querySelectorAll('#valueToggle button');
+    for (var j = 0; j < toggleBtns.length; j++) toggleBtns[j].disabled = util;
+    lastData = null;
+  }
+
+  function setValueType(type, btn) {
+    currentValue = type;
+    var toggleBtns = document.querySelectorAll('#valueToggle button');
+    for (var i = 0; i < toggleBtns.length; i++) toggleBtns[i].classList.remove('active');
+    btn.classList.add('active');
+    if (lastData) {
+      renderTable();
+      // 再描画後に検索キーワードが残っていれば再フィルタ
+      if (document.getElementById('searchInput').value) filterTable();
+    }
+  }
+
+  function runQuery() {
+    var period = document.getElementById('period').value;
+    document.getElementById('loading').style.display    = 'block';
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('runBtn').disabled = true;
+    lastData = null;
+    google.script.run
+      .withSuccessHandler(showResult)
+      .withFailureHandler(showError)
+      .processQuery(currentView, period);
+  }
+
+  var VIEW_LABELS = {
+    task_type:          '作業項目',
+    user_name:          '社員',
+    client:             '顧客',
+    department:         '請求先部門',
+    rd:                 '研究開発',
+    utilization_yakumu: '役務稼働率（社員）',
+    utilization:        '稼働率（社員）'
+  };
+
+  function showResult(res) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('runBtn').disabled = false;
+    if (!res.success) { alert('エラー: ' + res.error); return; }
+
+    sortState = { col: null, asc: true };
+    lastData  = res.data;
+    totalRows = res.data.rows.length;
+
+    document.getElementById('sqlOutput').textContent = res.sql;
+
+    // Build header
+    var schema  = res.data.schema;
+    var lastCol = schema[schema.length - 1];
+    var thead   = document.getElementById('tableHead');
+    thead.innerHTML = '';
+    var trH = document.createElement('tr');
+    for (var i = 0; i < schema.length; i++) {
+      var col   = schema[i];
+      var label = col.replace(/^(\d{4})-(\d{2})$/, function(_, y, m) { return y.slice(2) + '/' + m; });
+      var th    = document.createElement('th');
+      th.dataset.label = label;
+      th.dataset.col   = i;
+      var span  = document.createElement('span');
+      span.textContent = label;
+      var arrow = document.createElement('span');
+      arrow.className   = 'sort-arrow';
+      arrow.textContent = '▲';
+      th.appendChild(span);
+      th.appendChild(arrow);
+      if (col === lastCol) th.classList.add('col-total');
+      trH.appendChild(th);
+    }
+    thead.appendChild(trH);
+
+    // Reset search
+    var si = document.getElementById('searchInput');
+    si.value = '';
+    document.getElementById('searchClear').style.display = 'none';
+    document.getElementById('searchHint').innerHTML = '';
+    document.getElementById('searchRow').style.display = 'flex';
+
+    renderTable();
+    document.getElementById('resultArea').style.display = 'block';
+  }
+
+  /* ─── テーブル描画 ─────────────────────────────── */
+  function renderTable() {
+    if (!lastData) return;
+
+    var isPercent = isUtilView(currentView);
+    var isAmount  = currentValue === 'amount' && !isPercent;
+    var schema    = lastData.schema;
+    var lastCol   = schema[schema.length - 1];
+
+    var periodSel  = document.getElementById('period');
+    var periodText = periodSel.options[periodSel.selectedIndex].text;
+    var unit = isPercent ? '(％)' : isAmount ? '(千円)' : '(時間)';
+    document.getElementById('resultTitleText').textContent =
+      periodText + ' ／ ' + VIEW_LABELS[currentView] + ' ' + unit;
+
+    updateSubBadges(totalRows, totalRows); // 初期は全行表示
+
+    var tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    for (var r = 0; r < lastData.rows.length; r++) {
+      var row = lastData.rows[r];
+      var tr  = document.createElement('tr');
+      for (var i = 0; i < schema.length; i++) {
+        var col = schema[i];
+        var td  = document.createElement('td');
+        var val = row[col];
+        if (i === 0) {
+          td.textContent = (val == null || val === '') ? '(未設定)' : val;
+        } else {
+          if (val === null || val === undefined || val === '') {
+            td.textContent = '-'; td.classList.add('zero');
+          } else {
+            var raw = parseFloat(val);
+            if (isNaN(raw)) {
+              td.textContent = '-'; td.classList.add('zero');
+            } else if (raw === 0 && !isPercent) {
+              td.textContent = '-'; td.classList.add('zero');
+            } else {
+              var display = isAmount ? raw * 4.2 : raw;
+              td.textContent = display.toLocaleString('ja-JP', {
+                minimumFractionDigits: 1, maximumFractionDigits: 1
+              }) + (isPercent ? '%' : '');
+            }
+          }
+          if (col === lastCol) td.classList.add('col-total');
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  /* ─── サブバッジ更新 ────────────────────────────── */
+  function updateSubBadges(visible, total) {
+    var subEl = document.getElementById('resultSub');
+    var html  = '<span class="badge"><i class="fa-solid fa-table-rows"></i>' + total + ' 行</span>';
+    if (visible < total) {
+      html += ' <span class="badge highlight"><i class="fa-solid fa-filter"></i>' + visible + ' 件表示中</span>';
+    }
+    subEl.innerHTML = html;
+  }
+
+  /* ─── インクリメンタルサーチ ─────────────────────── */
+  function filterTable() {
+    var keyword = document.getElementById('searchInput').value;
+    var clearBtn = document.getElementById('searchClear');
+    var hint     = document.getElementById('searchHint');
+    clearBtn.style.display = keyword ? 'block' : 'none';
+
+    var tbody   = document.getElementById('tableBody');
+    var rows    = tbody.querySelectorAll('tr');
+    var kLower  = keyword.toLowerCase();
+    var matched = 0;
+
+    for (var i = 0; i < rows.length; i++) {
+      var firstCell = rows[i].cells[0];
+      if (!firstCell) continue;
+      var text = firstCell.textContent;
+
+      if (!keyword || text.toLowerCase().indexOf(kLower) !== -1) {
+        rows[i].classList.remove('hidden-row');
+        // ハイライト
+        if (keyword) {
+          var idx = text.toLowerCase().indexOf(kLower);
+          firstCell.innerHTML =
+            escHtml(text.slice(0, idx)) +
+            '<span class="hl">' + escHtml(text.slice(idx, idx + keyword.length)) + '</span>' +
+            escHtml(text.slice(idx + keyword.length));
+        } else {
+          firstCell.textContent = text; // ハイライト解除
+        }
+        matched++;
+      } else {
+        rows[i].classList.add('hidden-row');
+        firstCell.textContent = text; // ハイライト解除
+      }
+    }
+
+    updateSubBadges(matched, totalRows);
+
+    if (keyword) {
+      if (matched === 0) {
+        hint.innerHTML = '<span class="no-match"><i class="fa-solid fa-triangle-exclamation"></i> 該当なし</span>';
+      } else {
+        hint.innerHTML = '<span class="match-count">' + matched + '</span> / ' + totalRows + ' 件一致';
+      }
+    } else {
+      hint.innerHTML = '';
+    }
+  }
+
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    filterTable();
+    document.getElementById('searchInput').focus();
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* ─── ヘッダーソート ────────────────────────────── */
+  document.getElementById('tableHead').addEventListener('click', function(e) {
+    var th = e.target.closest('th');
+    if (!th) return;
+    var colIdx = parseInt(th.dataset.col, 10);
+    if (isNaN(colIdx)) return;
+
+    if (sortState.col === colIdx) {
+      sortState.asc = !sortState.asc;
+    } else {
+      sortState.col = colIdx;
+      sortState.asc = true;
+    }
+
+    var tbody = document.getElementById('tableBody');
+    var rows  = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+      var aText  = a.cells[colIdx].textContent.trim();
+      var bText  = b.cells[colIdx].textContent.trim();
+      var aClean = aText === '-' ? '0' : aText.replace(/[,%]/g, '');
+      var bClean = bText === '-' ? '0' : bText.replace(/[,%]/g, '');
+      var aNum   = parseFloat(aClean);
+      var bNum   = parseFloat(bClean);
+      var cmp    = (!isNaN(aNum) && !isNaN(bNum))
+        ? aNum - bNum
+        : aText.localeCompare(bText, 'ja');
+      return sortState.asc ? cmp : -cmp;
+    });
+    for (var i = 0; i < rows.length; i++) tbody.appendChild(rows[i]);
+
+    // インジケーター更新
+    var allTh = document.querySelectorAll('#tableHead th');
+    for (var j = 0; j < allTh.length; j++) {
+      allTh[j].classList.remove('sort-asc', 'sort-desc');
+      var arrow = allTh[j].querySelector('.sort-arrow');
+      if (j === sortState.col) {
+        if (sortState.asc) { allTh[j].classList.add('sort-asc');  arrow.textContent = '▲'; }
+        else               { allTh[j].classList.add('sort-desc'); arrow.textContent = '▼'; }
+      } else {
+        arrow.textContent = '▲';
+      }
+    }
+
+    // ソート後に検索フィルターを再適用
+    if (document.getElementById('searchInput').value) filterTable();
+  });
+
+  function showError(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('runBtn').disabled = false;
+    alert('エラー: ' + e.message);
+  }
+
+  function toggleSql() {
+    var block = document.getElementById('sqlBlock');
+    block.style.display = block.style.display === 'block' ? 'none' : 'block';
+  }
+</script>
+</body>
+</html>
