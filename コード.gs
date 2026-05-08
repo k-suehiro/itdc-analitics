@@ -13,6 +13,7 @@ function processQuery(viewType, period) {
 
     // rd・稼働率ビュー以外はTDのみデータも取得しクライアント側トグルに使用
     const needsTdSplit = viewType !== 'rd'
+      && viewType !== 'rd_product_name'
       && viewType !== 'utilization_yakumu'
       && viewType !== 'utilization';
     let tdData = null;
@@ -78,6 +79,13 @@ function buildSql(viewType, period, tdOnly) {
       orderBy: 'dim'
     },
 
+    product_name: {
+      expr:    "COALESCE(product_name, '未設定')",
+      label:   '品名',
+      where:   '',
+      orderBy: 'dim'
+    },
+
     client: {
       expr: `CASE
           WHEN LEFT(job_id, 2) = 'MP'
@@ -138,12 +146,22 @@ function buildSql(viewType, period, tdOnly) {
       label:   '区分',
       where:   "AND LEFT(job_id, 2) = 'TD'",
       orderBy: 'dim'
+    },
+
+    // 研究開発（= TD製番）を品名別に集計（区分は問わずTD全件）
+    rd_product_name: {
+      expr:    "COALESCE(product_name, '未設定')",
+      label:   '品名',
+      where:   "AND LEFT(job_id, 2) = 'TD'",
+      orderBy: 'dim'
     }
   };
 
   const dim = dimConfigs[viewType];
   // tdOnly モード: TD製番のみに絞る（rd は dim.where で既にTD限定）
-  const tdFilter = (tdOnly && viewType !== 'rd') ? "AND LEFT(job_id, 2) = 'TD'" : '';
+  const tdFilter = (tdOnly && viewType !== 'rd' && viewType !== 'rd_product_name')
+    ? "AND LEFT(job_id, 2) = 'TD'"
+    : '';
 
   const monthCols = months.map(m =>
     `ROUND(SUM(CASE WHEN FORMAT_DATE('%Y-%m', report_date) = '${m}' THEN hours ELSE 0 END), 1) AS \`${m}\``

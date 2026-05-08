@@ -717,12 +717,16 @@
           <i class="fa-solid fa-list-check"></i>&#x4F5C;&#x696D;&#x9805;&#x76EE;        </button>
         <button class="axis-btn" data-view="user_name" onclick="setViewType(this)">
           <i class="fa-solid fa-users"></i>&#x793E;&#x54E1;        </button>
+        <button class="axis-btn" data-view="product_name" onclick="setViewType(this)">
+          <i class="fa-solid fa-tag"></i>&#x54C1;&#x540D;        </button>
         <button class="axis-btn" data-view="client" onclick="setViewType(this)">
           <i class="fa-solid fa-building"></i>&#x9867;&#x5BA2;        </button>
         <button class="axis-btn" data-view="department" onclick="setViewType(this)">
           <i class="fa-solid fa-sitemap"></i>&#x8ACB;&#x6C42;&#x5148;&#x90E8;&#x9580;        </button>
         <button class="axis-btn" data-view="rd" onclick="setViewType(this)">
           <i class="fa-solid fa-flask"></i>&#x7814;&#x7A76;&#x958B;&#x767A;        </button>
+        <button class="axis-btn" data-view="rd_product_name" onclick="setViewType(this)">
+          <i class="fa-solid fa-flask"></i>&#x7814;&#x7A76;&#x958B;&#x767A;&#xFF08;&#x54C1;&#x540D;&#xFF09;        </button>
         <button class="axis-btn util-btn" data-view="utilization_yakumu" onclick="setViewType(this)">
           <i class="fa-solid fa-gauge-high"></i>&#x5F79;&#x52D9;&#x7A3C;&#x50CD;&#x7387;&#xFF08;&#x793E;&#x54E1;&#xFF09;
         </button>
@@ -894,7 +898,7 @@
     for (var j = 0; j < toggleBtns.length; j++) toggleBtns[j].disabled = util;
     // rd・稼働率ビューはTDチェックボックス対象外
     var tdWrap = document.getElementById('tdCheckboxWrap');
-    if (currentView === 'rd' || isUtilView(currentView)) {
+    if (currentView === 'rd' || currentView === 'rd_product_name' || isUtilView(currentView)) {
       tdWrap.classList.add('disabled');
     } else {
       tdWrap.classList.remove('disabled');
@@ -930,9 +934,11 @@
   var VIEW_LABELS = {
     task_type:          '作業項目',
     user_name:          '社員',
+    product_name:       '品名',
     client:             '顧客',
     department:         '請求先部門',
     rd:                 '研究開発',
+    rd_product_name:    '研究開発（品名）',
     utilization_yakumu: '役務稼働率（社員）',
     utilization:        '稼働率（社員）'
   };
