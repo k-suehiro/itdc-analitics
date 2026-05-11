@@ -34,7 +34,7 @@ function getMonths(period) {
     '39': { startYear: 2022, startMonth: 7, count: 12 },
     '40': { startYear: 2023, startMonth: 7, count: 12 },
     '41': { startYear: 2024, startMonth: 7, count: 12 },
-    '42': { startYear: 2025, startMonth: 7, count: 9 }  // ～2026-03
+    '42': { startYear: 2025, startMonth: 7, count: 10 }  // ～2026-04
   };
   const c = config[period];
   const months = [];
@@ -58,7 +58,7 @@ function buildSql(viewType, period, tdOnly) {
     '39': { start: '2022-07-01', end: '2023-06-30' },
     '40': { start: '2023-07-01', end: '2024-06-30' },
     '41': { start: '2024-07-01', end: '2025-06-30' },
-    '42': { start: '2025-07-01', end: '2026-03-31' }
+    '42': { start: '2025-07-01', end: '2026-04-30' }
   };
   const dates  = periodDates[period];
   const months = getMonths(period);
@@ -194,7 +194,7 @@ function buildUtilizationSql(viewType, period) {
     '39': { start: '2022-07-01', end: '2023-06-30' },
     '40': { start: '2023-07-01', end: '2024-06-30' },
     '41': { start: '2024-07-01', end: '2025-06-30' },
-    '42': { start: '2025-07-01', end: '2026-03-31' }
+    '42': { start: '2025-07-01', end: '2026-04-30' }
   };
   const dates  = periodDates[period];
   const months = getMonths(period);
