@@ -400,6 +400,10 @@
     }
     .sql-toggle-btn:hover { background: var(--bg); border-color: #c7d2de; color: var(--text); }
     .sql-toggle-btn i { font-size: 11px; color: var(--primary); }
+    .download-btn { color: var(--text); }
+    .download-btn i { color: #10b981; }
+    .download-btn:hover { background: #f0fdf4; border-color: #6ee7b7; color: #065f46; }
+    .download-btn:hover i { color: #059669; }
 
     /* SQL block */
     #sqlBlock { display: none; margin-bottom: 14px; }
@@ -767,6 +771,9 @@
         </button>
         <button class="sql-toggle-btn" onclick="toggleSql()">
           <i class="fa-solid fa-code"></i>SQL
+        </button>
+        <button class="sql-toggle-btn download-btn" onclick="downloadCSV()">
+          <i class="fa-solid fa-download"></i>CSV
         </button>
       </div>
     </div>
@@ -1171,6 +1178,63 @@
   function toggleSql() {
     var block = document.getElementById('sqlBlock');
     block.style.display = block.style.display === 'block' ? 'none' : 'block';
+  }
+
+  /* ─── CSVダウンロード ────────────────────────── */
+  function downloadCSV() {
+    if (!lastData) return;
+
+    var isPercent = isUtilView(currentView);
+    var isAmount  = currentValue === 'amount' && !isPercent;
+    var schema    = lastData.schema;
+    var rows      = getDisplayRows();
+
+    // ヘッダー行
+    var lines = [schema.map(function(col) {
+      return '"' + col.replace(/"/g, '""') + '"';
+    }).join(',')];
+
+    // データ行（テーブル表示と同じ変換を適用）
+    rows.forEach(function(row) {
+      var cells = schema.map(function(col, i) {
+        if (i === 0) {
+          var v = (row[col] == null || row[col] === '') ? '(未設定)' : row[col];
+          return '"' + String(v).replace(/"/g, '""') + '"';
+        }
+        var raw = parseFloat(row[col]);
+        if (isNaN(raw)) return '';
+        if (raw === 0 && !isPercent) return '';
+        var display = isAmount ? parseFloat((raw * 4.2).toFixed(1)) : raw;
+        return display;
+      });
+      lines.push(cells.join(','));
+    });
+
+    // BOM付きUTF-8（Excelで文字化けしない）
+    var csv  = '﻿' + lines.join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url  = URL.createObjectURL(blob);
+
+    // ファイル名: ITDC_Analytics_42期_社員_20260511.csv
+    var periodText = document.getElementById('period').options[
+      document.getElementById('period').selectedIndex].text;
+    var today = new Date();
+    var dateStr = today.getFullYear()
+      + ('0' + (today.getMonth() + 1)).slice(-2)
+      + ('0' + today.getDate()).slice(-2);
+    var raw = 'ITDC_Analytics_' + periodText + '_' + VIEW_LABELS[currentView]
+      + (isPercent ? '' : (isAmount ? '_金額千円' : '_時間h'))
+      + (!includeTD ? '_TD除外' : '')
+      + '_' + dateStr + '.csv';
+    var filename = raw.replace(/[/\\:*?"<>|（）\s]/g, '_');
+
+    var a = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   /* ─── グラフ ─────────────────────────────────── */
