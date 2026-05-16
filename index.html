@@ -240,6 +240,38 @@
       pointer-events: none;
     }
 
+    /* UTIL HALF TOGGLE */
+    #utilHalfToggle {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 0 4px;
+    }
+    #utilHalfToggle .half-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+    #utilHalfToggle button {
+      font-size: 12px;
+      padding: 4px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    #utilHalfToggle button.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    #utilHalfToggle button:not(.active):hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
     /* RUN BUTTON */
     .run-btn {
       display: inline-flex;
@@ -832,6 +864,14 @@
     <!-- table card (search bar + table) -->
     <div class="table-card">
 
+      <!-- 上期/全期/下期 トグル（稼働率ビューのみ表示） -->
+      <div id="utilHalfToggle">
+        <span class="half-label">表示期間:</span>
+        <button data-half="h1" onclick="setUtilHalf('h1')">上期（7〜12月）</button>
+        <button data-half="all" class="active" onclick="setUtilHalf('all')">全期</button>
+        <button data-half="h2" onclick="setUtilHalf('h2')">下期（1〜6月）</button>
+      </div>
+
       <!-- search bar -->
       <div class="search-bar-row" id="searchRow" style="display:none">
         <div class="search-input-wrap">
@@ -863,6 +903,7 @@
   var currentView  = 'task_type';
   var currentValue = 'hours';
   var includeTD    = true;
+  var utilHalf     = 'all'; // 稼働率ビュー用: 'all' | 'h1'(7-12月) | 'h2'(1-6月)
   var sortState    = { col: null, asc: true };
   var lastData     = null;
   var totalRows    = 0; // 全行数（フィルタ前）
@@ -920,6 +961,42 @@
     return v === 'utilization_yakumu' || v === 'utilization';
   }
 
+  // 上期/下期トグル切り替え
+  function setUtilHalf(half) {
+    utilHalf = half;
+    document.querySelectorAll('#utilHalfToggle button').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.half === half);
+    });
+    if (lastData) {
+      renderTable();
+      if (document.getElementById('chartBlock').style.display === 'block') renderChart();
+    }
+  }
+
+  // 稼働率ビューの列表示フラグを返す（null = 全列表示）
+  function getHalfColVisibility(schema) {
+    if (!isUtilView(currentView) || utilHalf === 'all') return null;
+    var lastIdx = schema.length - 1;
+    return schema.map(function(col, i) {
+      if (i === 0 || i === lastIdx) return true;
+      var month = parseInt(col.split('-')[1], 10);
+      return utilHalf === 'h1' ? month >= 7 : month <= 6;
+    });
+  }
+
+  // 行の半期平均を計算（稼働率ビュー + 上期/下期フィルタ時のみ使用）
+  function computeRowHalfAvg(row, schema, vis) {
+    var vals = [];
+    schema.forEach(function(col, i) {
+      if (i === 0 || i === schema.length - 1 || !vis[i]) return;
+      var v = parseFloat(row[col]);
+      if (!isNaN(v)) vals.push(v);
+    });
+    return vals.length > 0
+      ? Math.round(vals.reduce(function(a, b) { return a + b; }, 0) / vals.length * 10) / 10
+      : null;
+  }
+
   function setViewType(btn) {
     var btns = document.querySelectorAll('.axis-btn');
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
@@ -934,6 +1011,21 @@
       tdWrap.classList.add('disabled');
     } else {
       tdWrap.classList.remove('disabled');
+    }
+    // 稼働率ビュー: 上期/全期/下期トグルを表示。前半/後半が選ばれていれば通期に戻す
+    utilHalf = 'all';
+    document.querySelectorAll('#utilHalfToggle button').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.half === 'all');
+    });
+    var uht = document.getElementById('utilHalfToggle');
+    if (util) {
+      uht.style.display = 'flex';
+      var pSel = document.getElementById('period');
+      if (pSel.value.indexOf('_H') !== -1) {
+        pSel.value = pSel.value.split('_')[0];
+      }
+    } else {
+      uht.style.display = 'none';
     }
     lastData = null;
   }
@@ -1032,10 +1124,23 @@
     var schema    = lastData.schema;
     var lastCol   = schema[schema.length - 1];
 
+    // 稼働率ビューの上期/下期フィルタ
+    var vis = getHalfColVisibility(schema); // null = 全列表示
+    var halfLabel = utilHalf === 'h1' ? ' 上期' : utilHalf === 'h2' ? ' 下期' : '';
+
+    // thead 列の表示/非表示 + 合計列ラベル更新
+    var allTh = document.querySelectorAll('#tableHead th');
+    allTh.forEach(function(th, i) {
+      th.style.display = (!vis || vis[i]) ? '' : 'none';
+      if (i === schema.length - 1) {
+        th.querySelector('span').textContent = vis ? '期間平均' : '合計';
+      }
+    });
+
     var periodText = getPeriodText();
     var unit = isPercent ? '(％)' : isAmount ? '(千円)' : '(時間)';
     document.getElementById('resultTitleText').textContent =
-      periodText + ' ／ ' + VIEW_LABELS[currentView] + ' ' + unit;
+      periodText + halfLabel + ' ／ ' + VIEW_LABELS[currentView] + ' ' + unit;
 
     var displayRows = getDisplayRows();
     totalRows = displayRows.length;
@@ -1045,12 +1150,15 @@
     tbody.innerHTML = '';
 
     for (var r = 0; r < displayRows.length; r++) {
-      var row = displayRows[r];
-      var tr  = document.createElement('tr');
+      var row     = displayRows[r];
+      var halfAvg = vis ? computeRowHalfAvg(row, schema, vis) : null;
+      var tr      = document.createElement('tr');
       for (var i = 0; i < schema.length; i++) {
         var col = schema[i];
         var td  = document.createElement('td');
-        var val = row[col];
+        // 非表示列はdisplay:noneで保持（ソートのセルインデックス維持のため）
+        if (vis && !vis[i]) { td.style.display = 'none'; tr.appendChild(td); continue; }
+        var val = (vis && i === schema.length - 1) ? halfAvg : row[col];
         if (i === 0) {
           td.textContent = (val == null || val === '') ? '(未設定)' : val;
         } else {
@@ -1208,27 +1316,35 @@
   function downloadCSV() {
     if (!lastData) return;
 
-    var isPercent = isUtilView(currentView);
-    var isAmount  = currentValue === 'amount' && !isPercent;
-    var schema    = lastData.schema;
-    var rows      = getDisplayRows();
+    var isPercent  = isUtilView(currentView);
+    var isAmount   = currentValue === 'amount' && !isPercent;
+    var rawSchema  = lastData.schema;
+    var rows       = getDisplayRows();
+    var vis        = getHalfColVisibility(rawSchema); // null or bool[]
 
-    // ヘッダー行
-    var lines = [schema.map(function(col) {
-      return '"' + col.replace(/"/g, '""') + '"';
+    // 出力スキーマ（非表示列を除外、合計列ラベルを上書き）
+    var csvSchema = rawSchema.filter(function(col, i) { return !vis || vis[i]; });
+    var halfLabel = utilHalf === 'h1' ? '上期' : utilHalf === 'h2' ? '下期' : '';
+
+    // ヘッダー行（合計列のラベルを状況に応じて変更）
+    var lines = [csvSchema.map(function(col, fi) {
+      var lbl = (fi === csvSchema.length - 1 && vis) ? '期間平均' : col;
+      return '"' + lbl.replace(/"/g, '""') + '"';
     }).join(',')];
 
     // データ行（テーブル表示と同じ変換を適用）
     rows.forEach(function(row) {
-      var cells = schema.map(function(col, i) {
-        if (i === 0) {
+      var halfAvg = vis ? computeRowHalfAvg(row, rawSchema, vis) : null;
+      var cells = csvSchema.map(function(col, fi) {
+        var origIdx = rawSchema.indexOf(col);
+        if (origIdx === 0) {
           var v = (row[col] == null || row[col] === '') ? '(未設定)' : row[col];
           return '"' + String(v).replace(/"/g, '""') + '"';
         }
-        var raw = parseFloat(row[col]);
-        if (isNaN(raw)) return '';
-        if (raw === 0 && !isPercent) return '';
-        var display = isAmount ? parseFloat((raw * 4.2).toFixed(1)) : raw;
+        var rawVal = (vis && fi === csvSchema.length - 1) ? halfAvg : parseFloat(row[col]);
+        if (isNaN(rawVal) || rawVal === null) return '';
+        if (rawVal === 0 && !isPercent) return '';
+        var display = isAmount ? parseFloat((rawVal * 4.2).toFixed(1)) : rawVal;
         return display;
       });
       lines.push(cells.join(','));
@@ -1245,7 +1361,7 @@
     var dateStr = today.getFullYear()
       + ('0' + (today.getMonth() + 1)).slice(-2)
       + ('0' + today.getDate()).slice(-2);
-    var raw = 'ITDC_Analytics_' + periodText + '_' + VIEW_LABELS[currentView]
+    var raw = 'ITDC_Analytics_' + periodText + (halfLabel ? '_' + halfLabel : '') + '_' + VIEW_LABELS[currentView]
       + (isPercent ? '' : (isAmount ? '_金額千円' : '_時間h'))
       + (!includeTD ? '_TD除外' : '')
       + '_' + dateStr + '.csv';
@@ -1299,8 +1415,18 @@
     var lastCol   = schema[schema.length - 1];
     var unit      = isPercent ? '%' : isAmount ? '千円' : 'h';
 
+    // 稼働率ビューの上期/下期フィルタを適用
+    var vis = getHalfColVisibility(schema);
+    var effectiveRows = rows.map(function(row) {
+      if (!vis) return row;
+      var newRow = {};
+      schema.forEach(function(col) { newRow[col] = row[col]; });
+      newRow[lastCol] = computeRowHalfAvg(row, schema, vis);
+      return newRow;
+    });
+
     // 合計値で降順ソート、chartShowAll なら全件・それ以外は上位 TOP_N 件
-    var allSorted = rows.slice().sort(function(a, b) {
+    var allSorted = effectiveRows.slice().sort(function(a, b) {
       return parseFloat(b[lastCol] || 0) - parseFloat(a[lastCol] || 0);
     });
     var sorted = chartShowAll ? allSorted : allSorted.slice(0, TOP_N);
@@ -1323,14 +1449,17 @@
     if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
     var periodText = getPeriodText();
+    var cHalfLabel = utilHalf === 'h1' ? ' 上期' : utilHalf === 'h2' ? ' 下期' : '';
     document.getElementById('chartTitleText').textContent =
-      periodText + ' ／ ' + VIEW_LABELS[currentView];
+      periodText + cHalfLabel + ' ／ ' + VIEW_LABELS[currentView];
     document.getElementById('chartNNote').textContent =
       (!chartShowAll && hasMore) ? '上位 ' + TOP_N + ' 件表示' : sorted.length + ' 件';
 
     if (isPercent) {
-      // 折れ線グラフ：月別稼働率推移
-      var monthCols = schema.slice(1, schema.length - 1);
+      // 折れ線グラフ：月別稼働率推移（上期/下期フィルタを適用）
+      var monthCols = schema.slice(1, schema.length - 1).filter(function(col, i) {
+        return !vis || vis[i + 1]; // schema[0]が次元列なので+1オフセット
+      });
       var datasets = sorted.map(function(row, i) {
         return {
           label: row[schema[0]] || '(未設定)',
