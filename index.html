@@ -763,9 +763,7 @@
           <i class="fa-solid fa-flask"></i>&#x7814;&#x7A76;&#x958B;&#x767A;        </button>
         <button class="axis-btn" data-view="rd_product_name" onclick="setViewType(this)">
           <i class="fa-solid fa-flask"></i>&#x7814;&#x7A76;&#x958B;&#x767A;&#xFF08;&#x54C1;&#x540D;&#xFF09;        </button>
-        <button class="axis-btn util-btn" data-view="utilization_yakumu" onclick="setViewType(this)">
-          <i class="fa-solid fa-gauge-high"></i>&#x5F79;&#x52D9;&#x7A3C;&#x50CD;&#x7387;&#xFF08;&#x793E;&#x54E1;&#xFF09;
-        </button>
+
         <button class="axis-btn util-btn" data-view="utilization" onclick="setViewType(this)">
           <i class="fa-solid fa-gauge"></i>&#x7A3C;&#x50CD;&#x7387;&#xFF08;&#x793E;&#x54E1;&#xFF09;
         </button>
@@ -940,7 +938,7 @@
   }
 
   function isUtilView(v) {
-    return v === 'utilization_yakumu' || v === 'utilization';
+    return v === 'utilization';
   }
 
   // 上期/下期トグル切り替え
@@ -1038,7 +1036,6 @@
     department:         '請求先部門',
     rd:                 '研究開発',
     rd_product_name:    '研究開発（品名）',
-    utilization_yakumu: '役務稼働率（社員）',
     utilization:        '稼働率（社員）'
   };
 

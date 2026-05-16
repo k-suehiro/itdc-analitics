@@ -16,7 +16,7 @@ function processQuery(viewType, period) {
     const needsTdSplit = viewType !== 'rd' && viewType !== 'rd_product_name';
     let tdData = null;
     if (needsTdSplit) {
-      const isUtil = viewType === 'utilization_yakumu' || viewType === 'utilization';
+      const isUtil = viewType === 'utilization';
       const tdSql  = isUtil
         ? buildUtilizationSql(viewType, period, true)
         : buildSql(viewType, period, true);
@@ -66,7 +66,7 @@ function getMonths(period) {
 // tdOnly = true のとき TD製番のみに絞ったSQLを生成（クライアント側差分計算用）
 function buildSql(viewType, period, tdOnly) {
   tdOnly = !!tdOnly;
-  if (viewType === 'utilization_yakumu' || viewType === 'utilization') {
+  if (viewType === 'utilization') {
     return buildUtilizationSql(viewType, period);
   }
 
@@ -199,27 +199,21 @@ GROUP BY dim
 ORDER BY ${dim.orderBy}`;
 }
 
-// ─── 稼働率・役務稼働率（社員別）専用ビルダー ───────────────────────────────
-// tdExclude=true のとき TD除外版SQL を生成（クライアント側トグル用）
-//   稼働率 TD除外:     分子を非TD job時間に変更（役務稼働率と同じ分子）
-//   役務稼働率 TD除外: 分子は同じ、分母もTD時間を除外
+// ─── 稼働率（社員別）専用ビルダー ──────────────────────────────────────────
+// tdExclude=true のとき TD製番を分子から除外（TD除外 = 役務稼働率と同値）
 function buildUtilizationSql(viewType, period, tdExclude) {
   tdExclude = !!tdExclude;
   const { start, end } = getPeriodConfig(period);
   const dates  = { start, end };
   const months = getMonths(period);
 
-  const isYakumu  = viewType === 'utilization_yakumu';
-
-  // 分子: 役務稼働率またはTD除外モードは非TD job時間、稼働率TD含むは全job時間
-  const numerator = (isYakumu || tdExclude)
+  // TD含む: 全製番の時間 / 総時間
+  // TD除外: TD以外の製番の時間 / 総時間
+  const numerator = tdExclude
     ? "SUM(CASE WHEN job_id IS NOT NULL AND job_id != '' AND LEFT(job_id, 2) != 'TD' THEN hours ELSE 0 END)"
     : "SUM(CASE WHEN job_id IS NOT NULL AND job_id != ''                              THEN hours ELSE 0 END)";
 
-  // 分母: 役務稼働率TD除外のみTD時間を除いた総時間、それ以外は全時間
-  const denominator = (isYakumu && tdExclude)
-    ? "SUM(hours) - SUM(CASE WHEN LEFT(job_id, 2) = 'TD' THEN hours ELSE 0 END)"
-    : "SUM(hours)";
+  const denominator = "SUM(hours)";
 
   const monthCols = months.map(m =>
     `ROUND(MAX(CASE WHEN ym = '${m}' THEN SAFE_DIVIDE(num_hours, total_hours) * 100 END), 1) AS \`${m}\``
