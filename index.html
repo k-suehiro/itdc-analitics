@@ -701,26 +701,10 @@
         <div class="select-wrapper">
           <i class="fa-solid fa-layer-group sel-icon"></i>
           <select id="period">
-            <optgroup label="42期">
-              <option value="42">通期（2025年7月〜2026年4月）</option>
-              <option value="42_H1">前半（2025年7月〜12月）</option>
-              <option value="42_H2">後半（2026年1月〜4月）</option>
-            </optgroup>
-            <optgroup label="41期">
-              <option value="41">通期（2024年7月〜2025年6月）</option>
-              <option value="41_H1">前半（2024年7月〜12月）</option>
-              <option value="41_H2">後半（2025年1月〜6月）</option>
-            </optgroup>
-            <optgroup label="40期">
-              <option value="40">通期（2023年7月〜2024年6月）</option>
-              <option value="40_H1">前半（2023年7月〜12月）</option>
-              <option value="40_H2">後半（2024年1月〜6月）</option>
-            </optgroup>
-            <optgroup label="39期">
-              <option value="39">通期（2022年7月〜2023年6月）</option>
-              <option value="39_H1">前半（2022年7月〜12月）</option>
-              <option value="39_H2">後半（2023年1月〜6月）</option>
-            </optgroup>
+            <option value="42">42期（2025年7月〜2026年4月）</option>
+            <option value="41">41期（2024年7月〜2025年6月）</option>
+            <option value="40">40期（2023年7月〜2024年6月）</option>
+            <option value="39">39期（2022年7月〜2023年6月）</option>
           </select>
           <i class="fa-solid fa-chevron-down select-caret"></i>
         </div>
@@ -864,7 +848,7 @@
     <!-- table card (search bar + table) -->
     <div class="table-card">
 
-      <!-- 上期/全期/下期 トグル（稼働率ビューのみ表示） -->
+      <!-- 上期/全期/下期 トグル（集計後に表示） -->
       <div id="utilHalfToggle">
         <span class="half-label">表示期間:</span>
         <button data-half="h1" onclick="setUtilHalf('h1')">上期（7〜12月）</button>
@@ -910,9 +894,7 @@
 
   function getPeriodText() {
     var sel = document.getElementById('period');
-    var opt = sel.options[sel.selectedIndex];
-    var ki  = (opt.parentElement && opt.parentElement.label) ? opt.parentElement.label + ' ' : '';
-    return ki + opt.text;
+    return sel.options[sel.selectedIndex].text;
   }
 
   function setIncludeTD() {
@@ -973,9 +955,9 @@
     }
   }
 
-  // 稼働率ビューの列表示フラグを返す（null = 全列表示）
+  // 列表示フラグを返す（null = 全列表示）
   function getHalfColVisibility(schema) {
-    if (!isUtilView(currentView) || utilHalf === 'all') return null;
+    if (utilHalf === 'all') return null;
     var lastIdx = schema.length - 1;
     return schema.map(function(col, i) {
       if (i === 0 || i === lastIdx) return true;
@@ -984,17 +966,19 @@
     });
   }
 
-  // 行の半期平均を計算（稼働率ビュー + 上期/下期フィルタ時のみ使用）
-  function computeRowHalfAvg(row, schema, vis) {
+  // 半期の合計値を計算（稼働率ビュー=平均、それ以外=合計）
+  function computeRowHalfTotal(row, schema, vis) {
     var vals = [];
     schema.forEach(function(col, i) {
       if (i === 0 || i === schema.length - 1 || !vis[i]) return;
       var v = parseFloat(row[col]);
       if (!isNaN(v)) vals.push(v);
     });
-    return vals.length > 0
-      ? Math.round(vals.reduce(function(a, b) { return a + b; }, 0) / vals.length * 10) / 10
-      : null;
+    if (vals.length === 0) return null;
+    var sum = vals.reduce(function(a, b) { return a + b; }, 0);
+    return isUtilView(currentView)
+      ? Math.round(sum / vals.length * 10) / 10
+      : Math.round(sum * 10) / 10;
   }
 
   function setViewType(btn) {
@@ -1012,21 +996,12 @@
     } else {
       tdWrap.classList.remove('disabled');
     }
-    // 稼働率ビュー: 上期/全期/下期トグルを表示。前半/後半が選ばれていれば通期に戻す
+    // 集計軸切り替え時はトグルをリセット・非表示（再集計後に表示）
     utilHalf = 'all';
     document.querySelectorAll('#utilHalfToggle button').forEach(function(b) {
       b.classList.toggle('active', b.dataset.half === 'all');
     });
-    var uht = document.getElementById('utilHalfToggle');
-    if (util) {
-      uht.style.display = 'flex';
-      var pSel = document.getElementById('period');
-      if (pSel.value.indexOf('_H') !== -1) {
-        pSel.value = pSel.value.split('_')[0];
-      }
-    } else {
-      uht.style.display = 'none';
-    }
+    document.getElementById('utilHalfToggle').style.display = 'none';
     lastData = null;
   }
 
@@ -1109,6 +1084,7 @@
     document.getElementById('searchClear').style.display = 'none';
     document.getElementById('searchHint').innerHTML = '';
     document.getElementById('searchRow').style.display = 'flex';
+    document.getElementById('utilHalfToggle').style.display = 'flex';
 
     renderTable();
     if (document.getElementById('chartBlock').style.display === 'block') renderChart();
@@ -1133,7 +1109,7 @@
     allTh.forEach(function(th, i) {
       th.style.display = (!vis || vis[i]) ? '' : 'none';
       if (i === schema.length - 1) {
-        th.querySelector('span').textContent = vis ? '期間平均' : '合計';
+        th.querySelector('span').textContent = (vis && isUtilView(currentView)) ? '期間平均' : '合計';
       }
     });
 
@@ -1151,7 +1127,7 @@
 
     for (var r = 0; r < displayRows.length; r++) {
       var row     = displayRows[r];
-      var halfAvg = vis ? computeRowHalfAvg(row, schema, vis) : null;
+      var halfAvg = vis ? computeRowHalfTotal(row, schema, vis) : null;
       var tr      = document.createElement('tr');
       for (var i = 0; i < schema.length; i++) {
         var col = schema[i];
@@ -1328,13 +1304,13 @@
 
     // ヘッダー行（合計列のラベルを状況に応じて変更）
     var lines = [csvSchema.map(function(col, fi) {
-      var lbl = (fi === csvSchema.length - 1 && vis) ? '期間平均' : col;
+      var lbl = (fi === csvSchema.length - 1 && vis && isUtilView(currentView)) ? '期間平均' : col;
       return '"' + lbl.replace(/"/g, '""') + '"';
     }).join(',')];
 
     // データ行（テーブル表示と同じ変換を適用）
     rows.forEach(function(row) {
-      var halfAvg = vis ? computeRowHalfAvg(row, rawSchema, vis) : null;
+      var halfAvg = vis ? computeRowHalfTotal(row, rawSchema, vis) : null;
       var cells = csvSchema.map(function(col, fi) {
         var origIdx = rawSchema.indexOf(col);
         if (origIdx === 0) {
@@ -1421,7 +1397,7 @@
       if (!vis) return row;
       var newRow = {};
       schema.forEach(function(col) { newRow[col] = row[col]; });
-      newRow[lastCol] = computeRowHalfAvg(row, schema, vis);
+      newRow[lastCol] = computeRowHalfTotal(row, schema, vis);
       return newRow;
     });
 
