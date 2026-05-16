@@ -162,7 +162,7 @@
       color: var(--text);
       appearance: none;
       -webkit-appearance: none;
-      width: 280px;
+      width: 300px;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     select:focus {
@@ -669,10 +669,26 @@
         <div class="select-wrapper">
           <i class="fa-solid fa-layer-group sel-icon"></i>
           <select id="period">
-            <option value="42">42&#x671F;&#xFF08;2025&#x5E74;7&#x6708;&#xFF5E;2026&#x5E74;4&#x6708;&#xFF09;</option>
-            <option value="41">41&#x671F;&#xFF08;2024&#x5E74;7&#x6708;&#xFF5E;2025&#x5E74;6&#x6708;&#xFF09;</option>
-            <option value="40">40&#x671F;&#xFF08;2023&#x5E74;7&#x6708;&#xFF5E;2024&#x5E74;6&#x6708;&#xFF09;</option>
-            <option value="39">39&#x671F;&#xFF08;2022&#x5E74;7&#x6708;&#xFF5E;2023&#x5E74;6&#x6708;&#xFF09;</option>
+            <optgroup label="42期">
+              <option value="42">通期（2025年7月〜2026年4月）</option>
+              <option value="42_H1">前半（2025年7月〜12月）</option>
+              <option value="42_H2">後半（2026年1月〜4月）</option>
+            </optgroup>
+            <optgroup label="41期">
+              <option value="41">通期（2024年7月〜2025年6月）</option>
+              <option value="41_H1">前半（2024年7月〜12月）</option>
+              <option value="41_H2">後半（2025年1月〜6月）</option>
+            </optgroup>
+            <optgroup label="40期">
+              <option value="40">通期（2023年7月〜2024年6月）</option>
+              <option value="40_H1">前半（2023年7月〜12月）</option>
+              <option value="40_H2">後半（2024年1月〜6月）</option>
+            </optgroup>
+            <optgroup label="39期">
+              <option value="39">通期（2022年7月〜2023年6月）</option>
+              <option value="39_H1">前半（2022年7月〜12月）</option>
+              <option value="39_H2">後半（2023年1月〜6月）</option>
+            </optgroup>
           </select>
           <i class="fa-solid fa-chevron-down select-caret"></i>
         </div>
@@ -851,6 +867,13 @@
   var lastData     = null;
   var totalRows    = 0; // 全行数（フィルタ前）
 
+  function getPeriodText() {
+    var sel = document.getElementById('period');
+    var opt = sel.options[sel.selectedIndex];
+    var ki  = (opt.parentElement && opt.parentElement.label) ? opt.parentElement.label + ' ' : '';
+    return ki + opt.text;
+  }
+
   function setIncludeTD() {
     includeTD = document.getElementById('includeTD').checked;
     if (lastData) {
@@ -1007,8 +1030,7 @@
     var schema    = lastData.schema;
     var lastCol   = schema[schema.length - 1];
 
-    var periodSel  = document.getElementById('period');
-    var periodText = periodSel.options[periodSel.selectedIndex].text;
+    var periodText = getPeriodText();
     var unit = isPercent ? '(％)' : isAmount ? '(千円)' : '(時間)';
     document.getElementById('resultTitleText').textContent =
       periodText + ' ／ ' + VIEW_LABELS[currentView] + ' ' + unit;
@@ -1216,8 +1238,7 @@
     var url  = URL.createObjectURL(blob);
 
     // ファイル名: ITDC_Analytics_42期_社員_20260511.csv
-    var periodText = document.getElementById('period').options[
-      document.getElementById('period').selectedIndex].text;
+    var periodText = getPeriodText();
     var today = new Date();
     var dateStr = today.getFullYear()
       + ('0' + (today.getMonth() + 1)).slice(-2)
@@ -1299,7 +1320,7 @@
     var ctx = document.getElementById('myChart').getContext('2d');
     if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
-    var periodText = document.getElementById('period').options[document.getElementById('period').selectedIndex].text;
+    var periodText = getPeriodText();
     document.getElementById('chartTitleText').textContent =
       periodText + ' ／ ' + VIEW_LABELS[currentView];
     document.getElementById('chartNNote').textContent =

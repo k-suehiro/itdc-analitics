@@ -28,15 +28,30 @@ function processQuery(viewType, period) {
   }
 }
 
-// 期ごとの年月リストを生成（7月始まり）
-function getMonths(period) {
-  const config = {
-    '39': { startYear: 2022, startMonth: 7, count: 12 },
-    '40': { startYear: 2023, startMonth: 7, count: 12 },
-    '41': { startYear: 2024, startMonth: 7, count: 12 },
-    '42': { startYear: 2025, startMonth: 7, count: 10 }  // ～2026-04
+// 期・半期の設定を一元管理
+function getPeriodConfig(period) {
+  const all = {
+    // 通期
+    '39':    { startYear: 2022, startMonth:  7, count: 12, start: '2022-07-01', end: '2023-06-30' },
+    '40':    { startYear: 2023, startMonth:  7, count: 12, start: '2023-07-01', end: '2024-06-30' },
+    '41':    { startYear: 2024, startMonth:  7, count: 12, start: '2024-07-01', end: '2025-06-30' },
+    '42':    { startYear: 2025, startMonth:  7, count: 10, start: '2025-07-01', end: '2026-04-30' },
+    // 前半（7月〜12月）
+    '39_H1': { startYear: 2022, startMonth:  7, count:  6, start: '2022-07-01', end: '2022-12-31' },
+    '40_H1': { startYear: 2023, startMonth:  7, count:  6, start: '2023-07-01', end: '2023-12-31' },
+    '41_H1': { startYear: 2024, startMonth:  7, count:  6, start: '2024-07-01', end: '2024-12-31' },
+    '42_H1': { startYear: 2025, startMonth:  7, count:  6, start: '2025-07-01', end: '2025-12-31' },
+    // 後半（1月〜6月、42期のみ4月まで）
+    '39_H2': { startYear: 2023, startMonth:  1, count:  6, start: '2023-01-01', end: '2023-06-30' },
+    '40_H2': { startYear: 2024, startMonth:  1, count:  6, start: '2024-01-01', end: '2024-06-30' },
+    '41_H2': { startYear: 2025, startMonth:  1, count:  6, start: '2025-01-01', end: '2025-06-30' },
+    '42_H2': { startYear: 2026, startMonth:  1, count:  4, start: '2026-01-01', end: '2026-04-30' },
   };
-  const c = config[period];
+  return all[period];
+}
+
+function getMonths(period) {
+  const c = getPeriodConfig(period);
   const months = [];
   for (let i = 0; i < c.count; i++) {
     const total = c.startMonth - 1 + i;
@@ -54,13 +69,8 @@ function buildSql(viewType, period, tdOnly) {
     return buildUtilizationSql(viewType, period);
   }
 
-  const periodDates = {
-    '39': { start: '2022-07-01', end: '2023-06-30' },
-    '40': { start: '2023-07-01', end: '2024-06-30' },
-    '41': { start: '2024-07-01', end: '2025-06-30' },
-    '42': { start: '2025-07-01', end: '2026-04-30' }
-  };
-  const dates  = periodDates[period];
+  const { start, end } = getPeriodConfig(period);
+  const dates  = { start, end };
   const months = getMonths(period);
 
   const dimConfigs = {
@@ -190,13 +200,8 @@ ORDER BY ${dim.orderBy}`;
 
 // ─── 稼働率・役務稼働率（社員別）専用ビルダー ───────────────────────────────
 function buildUtilizationSql(viewType, period) {
-  const periodDates = {
-    '39': { start: '2022-07-01', end: '2023-06-30' },
-    '40': { start: '2023-07-01', end: '2024-06-30' },
-    '41': { start: '2024-07-01', end: '2025-06-30' },
-    '42': { start: '2025-07-01', end: '2026-04-30' }
-  };
-  const dates  = periodDates[period];
+  const { start, end } = getPeriodConfig(period);
+  const dates  = { start, end };
   const months = getMonths(period);
 
   // 役務稼働率: TD製番を除くjob_id有り時間 / 総時間（定義固定）
