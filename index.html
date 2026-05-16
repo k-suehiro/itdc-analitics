@@ -886,9 +886,11 @@
   // TD込み/抜きを切り替えた表示行を返す（BigQuery再クエリなし）
   function getDisplayRows() {
     if (!lastData) return [];
-    if (includeTD || !lastData.tdRows || lastData.tdRows.length === 0) {
-      return lastData.rows;
-    }
+    if (includeTD) return lastData.rows;
+    if (!lastData.tdRows || lastData.tdRows.length === 0) return lastData.rows;
+    // 稼働率ビュー: tdRowsはTD除外版の完成データ。そのまま返す
+    if (isUtilView(currentView)) return lastData.tdRows;
+    // 通常ビュー: tdRowsはTD製番のみデータ。差分を計算
     var schema   = lastData.schema;
     var totalCol = schema[schema.length - 1];
     var tdMap    = {};
@@ -926,9 +928,9 @@
     var util = isUtilView(currentView);
     var toggleBtns = document.querySelectorAll('#valueToggle button');
     for (var j = 0; j < toggleBtns.length; j++) toggleBtns[j].disabled = util;
-    // rd・稼働率ビューはTDチェックボックス対象外
+    // rdビューはTDチェックボックス対象外（稼働率ビューは対象）
     var tdWrap = document.getElementById('tdCheckboxWrap');
-    if (currentView === 'rd' || currentView === 'rd_product_name' || isUtilView(currentView)) {
+    if (currentView === 'rd' || currentView === 'rd_product_name') {
       tdWrap.classList.add('disabled');
     } else {
       tdWrap.classList.remove('disabled');

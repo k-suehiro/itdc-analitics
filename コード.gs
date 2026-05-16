@@ -11,14 +11,15 @@ function processQuery(viewType, period) {
     const sql = buildSql(viewType, period);
     const result = runBigQuery(sql);
 
-    // rd・稼働率ビュー以外はTDのみデータも取得しクライアント側トグルに使用
-    const needsTdSplit = viewType !== 'rd'
-      && viewType !== 'rd_product_name'
-      && viewType !== 'utilization_yakumu'
-      && viewType !== 'utilization';
+    // rd以外はTD除外データも取得しクライアント側トグルに使用
+    // 稼働率ビューはTD除外版SQL、通常ビューはTD製番のみSQL
+    const needsTdSplit = viewType !== 'rd' && viewType !== 'rd_product_name';
     let tdData = null;
     if (needsTdSplit) {
-      const tdSql = buildSql(viewType, period, true);
+      const isUtil = viewType === 'utilization_yakumu' || viewType === 'utilization';
+      const tdSql  = isUtil
+        ? buildUtilizationSql(viewType, period, true)
+        : buildSql(viewType, period, true);
       tdData = runBigQuery(tdSql);
     }
 
@@ -199,17 +200,26 @@ ORDER BY ${dim.orderBy}`;
 }
 
 // ─── 稼働率・役務稼働率（社員別）専用ビルダー ───────────────────────────────
-function buildUtilizationSql(viewType, period) {
+// tdExclude=true のとき TD除外版SQL を生成（クライアント側トグル用）
+//   稼働率 TD除外:     分子を非TD job時間に変更（役務稼働率と同じ分子）
+//   役務稼働率 TD除外: 分子は同じ、分母もTD時間を除外
+function buildUtilizationSql(viewType, period, tdExclude) {
+  tdExclude = !!tdExclude;
   const { start, end } = getPeriodConfig(period);
   const dates  = { start, end };
   const months = getMonths(period);
 
-  // 役務稼働率: TD製番を除くjob_id有り時間 / 総時間（定義固定）
-  // 稼働率　　: job_id有り時間 / 総時間
   const isYakumu  = viewType === 'utilization_yakumu';
-  const numerator = isYakumu
+
+  // 分子: 役務稼働率またはTD除外モードは非TD job時間、稼働率TD含むは全job時間
+  const numerator = (isYakumu || tdExclude)
     ? "SUM(CASE WHEN job_id IS NOT NULL AND job_id != '' AND LEFT(job_id, 2) != 'TD' THEN hours ELSE 0 END)"
     : "SUM(CASE WHEN job_id IS NOT NULL AND job_id != ''                              THEN hours ELSE 0 END)";
+
+  // 分母: 役務稼働率TD除外のみTD時間を除いた総時間、それ以外は全時間
+  const denominator = (isYakumu && tdExclude)
+    ? "SUM(hours) - SUM(CASE WHEN LEFT(job_id, 2) = 'TD' THEN hours ELSE 0 END)"
+    : "SUM(hours)";
 
   const monthCols = months.map(m =>
     `ROUND(MAX(CASE WHEN ym = '${m}' THEN SAFE_DIVIDE(num_hours, total_hours) * 100 END), 1) AS \`${m}\``
@@ -219,8 +229,8 @@ function buildUtilizationSql(viewType, period) {
   SELECT
     COALESCE(user_name, '未設定') AS user_name,
     FORMAT_DATE('%Y-%m', report_date) AS ym,
-    SUM(hours)   AS total_hours,
-    ${numerator} AS num_hours
+    ${denominator} AS total_hours,
+    ${numerator}   AS num_hours
   FROM \`itdc-wdr.daily_reports.reports\`
   WHERE report_date BETWEEN '${dates.start}' AND '${dates.end}'
   GROUP BY user_name, ym
