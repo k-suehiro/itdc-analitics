@@ -1299,9 +1299,16 @@
     var csvSchema = rawSchema.filter(function(col, i) { return !vis || vis[i]; });
     var halfLabel = utilHalf === 'h1' ? '上期' : utilHalf === 'h2' ? '下期' : '';
 
-    // ヘッダー行（合計列のラベルを状況に応じて変更）
+    // ヘッダー行（月列を日本語表記に変換してExcelの日付誤認識を防ぐ）
     var lines = [csvSchema.map(function(col, fi) {
-      var lbl = (fi === csvSchema.length - 1 && vis && isUtilView(currentView)) ? '期間平均' : col;
+      var lbl;
+      if (fi === csvSchema.length - 1 && vis && isUtilView(currentView)) {
+        lbl = '期間平均';
+      } else {
+        lbl = col.replace(/^(\d{4})-(\d{2})$/, function(_, y, m) {
+          return y.slice(2) + '年' + parseInt(m, 10) + '月';
+        });
+      }
       return '"' + lbl.replace(/"/g, '""') + '"';
     }).join(',')];
 
