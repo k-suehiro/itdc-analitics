@@ -238,6 +238,172 @@ GROUP BY user_name
 ORDER BY user_name`;
 }
 
+// ─── Gemini AI 関連 ─────────────────────────────────────────────────────────
+
+function callGemini(prompt) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('GEMINI_API_KEY がScript Propertiesに設定されていません');
+
+  var endpoint =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+  };
+  var options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  var response = UrlFetchApp.fetch(endpoint, options);
+  var code     = response.getResponseCode();
+  var body     = JSON.parse(response.getContentText());
+  if (code !== 200) {
+    throw new Error('Gemini API エラー (' + code + '): ' + ((body.error && body.error.message) || '不明なエラー'));
+  }
+  return body.candidates[0].content.parts[0].text;
+}
+
+// 次元列（1列目）と合計列（最終列）のみのTSVを返す（プロンプトのトークン節約）
+function formatDataAsTable(schema, rows, isUtil) {
+  var dimCol   = schema[0];
+  var totalCol = schema[schema.length - 1];
+  var unit     = isUtil ? '%' : 'h';
+  var lines    = [dimCol + '\t' + (isUtil ? '平均稼働率' : '合計工数')];
+  rows.forEach(function(row) {
+    var total = parseFloat(row[totalCol]);
+    lines.push((row[dimCol] || '(未設定)') + '\t' + (isNaN(total) ? '-' : total.toFixed(1) + unit));
+  });
+  return lines.join('\n');
+}
+
+// クライアントから渡された表示データを Gemini で分析
+function analyzeResult(viewType, period, includeTD, dataJson) {
+  try {
+    var data      = JSON.parse(dataJson);
+    var periodCfg = getPeriodConfig(period);
+    var isUtil    = viewType === 'utilization';
+    var viewNames = {
+      task_type:'作業項目別', user_name:'社員別', product_name:'品名別',
+      client:'顧客別', department:'請求先部門別',
+      rd:'研究開発区分別', rd_product_name:'研究開発品名別', utilization:'社員別稼働率'
+    };
+    var rows      = data.rows.slice(0, 30);
+    var isTrunc   = data.rows.length > 30;
+    var table     = formatDataAsTable(data.schema, rows, isUtil);
+    var truncNote = isTrunc ? '（全' + data.rows.length + '行のうち上位30行）' : '（全' + data.rows.length + '行）';
+
+    var prompt = [
+      'あなたはITDC（受託開発・印刷会社）の経営管理アナリストです。',
+      '以下の業務集計データを分析し、日本語でインサイトとアドバイスを提供してください。',
+      '',
+      '■ データ概要',
+      '  対象期間: ' + periodCfg.start + ' ～ ' + periodCfg.end,
+      '  集計軸: ' + (viewNames[viewType] || viewType),
+      '  集計値: ' + (isUtil ? '稼働率(%)' : '工数(時間)'),
+      '  TD製番: ' + (includeTD ? '含む' : '除外'),
+      '',
+      '■ 集計データ ' + truncNote,
+      table,
+      '',
+      '■ 回答フォーマット（Markdownで300〜500字）',
+      '1. **主要な傾向・特徴**（2〜3点）: 数値を引用しながら具体的に',
+      '2. **注目すべき点・異常値**（あれば）',
+      '3. **経営へのアドバイス**（2〜3点）',
+      '数値には単位を必ず付けてください。'
+    ].join('\n');
+
+    return { success: true, analysis: callGemini(prompt) };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// 自然言語質問 → ルーティング → BigQuery集計 → Gemini分析
+function chatQuery(userMessage) {
+  try {
+    var validViews   = ['task_type','user_name','product_name','client','department','rd','rd_product_name','utilization'];
+    var validPeriods = ['39','40','41','42'];
+    var todayStr = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+
+    // Step1: Gemini に集計パラメータを選ばせる
+    var step1Prompt = [
+      'あなたはITDCの業務分析ルーターです。ユーザーの質問に最適な集計パラメータをJSON形式のみで返してください。',
+      '',
+      '■ viewType の選択肢',
+      '  "task_type":作業項目別工数  "user_name":社員別工数  "product_name":品名別工数',
+      '  "client":顧客別工数  "department":請求先部門別工数',
+      '  "rd":研究開発区分別  "rd_product_name":研究開発品名別  "utilization":社員別稼働率(%)',
+      '',
+      '■ period の選択肢: "39"〜"42"（期指定なければ最新の"42"）',
+      '  "42"=42期(2025/7〜2026/4)  "41"=41期(2024/7〜2025/6)  "40"=40期  "39"=39期',
+      '  今日は ' + todayStr,
+      '',
+      '■ 出力フォーマット（このJSONのみ・余分なテキスト不要）',
+      '{"viewType":"task_type","period":"42","reason":"選択理由"}',
+      '',
+      '■ ユーザーの質問',
+      userMessage
+    ].join('\n');
+
+    var step1Raw  = callGemini(step1Prompt);
+    var jsonMatch = step1Raw.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) throw new Error('Geminiのルーティング出力が不正: ' + step1Raw);
+    var step1    = JSON.parse(jsonMatch[0]);
+    var viewType = validViews.indexOf(step1.viewType)  !== -1 ? step1.viewType : 'task_type';
+    var period   = validPeriods.indexOf(step1.period)  !== -1 ? step1.period   : '42';
+    var reason   = step1.reason || '';
+
+    // Step2: BigQuery 集計
+    var sql    = buildSql(viewType, period);
+    var result = runBigQuery(sql);
+
+    // Step3: Gemini で分析・回答
+    var periodCfg = getPeriodConfig(period);
+    var isUtil    = viewType === 'utilization';
+    var viewNames = {
+      task_type:'作業項目別', user_name:'社員別', product_name:'品名別',
+      client:'顧客別', department:'請求先部門別',
+      rd:'研究開発区分別', rd_product_name:'研究開発品名別', utilization:'社員別稼働率'
+    };
+    var rows      = result.rows.slice(0, 30);
+    var isTrunc   = result.rows.length > 30;
+    var table     = formatDataAsTable(result.schema, rows, isUtil);
+    var truncNote = isTrunc ? '（上位30行）' : '';
+
+    var step3Prompt = [
+      'あなたはITDCの業務データアナリストです。ユーザーの質問に日本語で具体的・簡潔に回答してください。',
+      '',
+      '【ユーザーの質問】',
+      userMessage,
+      '',
+      '【参照したデータ】',
+      '  集計軸: ' + (viewNames[viewType] || viewType) + '（選択理由: ' + reason + '）',
+      '  対象期間: ' + periodCfg.start + ' ～ ' + periodCfg.end,
+      '',
+      '【集計結果】' + truncNote,
+      table,
+      '',
+      '数値を引用しながら根拠のある回答をしてください（Markdown形式・400字以内）。',
+      '最後に「さらに詳しく知りたい点があれば質問してください」と添えてください。'
+    ].join('\n');
+
+    return {
+      success:  true,
+      answer:   callGemini(step3Prompt),
+      viewType: viewType,
+      period:   period,
+      sql:      sql
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function runBigQuery(sql) {
   const request = { query: sql, useLegacySql: false, timeoutMs: 30000 };
   let queryResults = BigQuery.Jobs.query(request, PROJECT_ID);

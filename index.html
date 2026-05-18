@@ -657,6 +657,162 @@
       .axis-btn { font-size: 13px; padding: 6px 10px; }
       .controls-card { padding: 16px 14px; }
     }
+
+    /* ═══════════════════════════════════════
+       AI 分析ボタン
+    ═══════════════════════════════════════ */
+    .ai-analyze-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .ai-analyze-btn:hover { opacity: .88; }
+    .ai-analyze-btn:active { transform: scale(.97); }
+    .ai-analyze-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ═══════════════════════════════════════
+       AI 分析パネル
+    ═══════════════════════════════════════ */
+    #aiAnalysisPanel {
+      background: var(--purple-light);
+      border: 1px solid #ddd6fe;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    .ai-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .ai-panel-title {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 14px; font-weight: 700; color: #7c3aed;
+    }
+    .ai-panel-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 15px; padding: 2px 6px;
+      border-radius: 6px; transition: background .12s;
+    }
+    .ai-panel-close:hover { background: #ede9fe; }
+    #aiAnalysisContent {
+      font-size: 13.5px; line-height: 1.75; color: var(--text);
+    }
+    #aiAnalysisContent h1,#aiAnalysisContent h2,#aiAnalysisContent h3 {
+      font-size: 14px; font-weight: 700; margin: 10px 0 4px; color: #6d28d9;
+    }
+    #aiAnalysisContent strong { color: #5b21b6; }
+    #aiAnalysisContent ul,#aiAnalysisContent ol { padding-left: 20px; margin: 4px 0; }
+    #aiAnalysisContent li { margin: 2px 0; }
+    #aiAnalysisContent p { margin: 6px 0; }
+
+    /* ═══════════════════════════════════════
+       AI チャットパネル（フローティング）
+    ═══════════════════════════════════════ */
+    #chatToggleBtn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      color: #fff; border: none; cursor: pointer;
+      font-size: 22px;
+      box-shadow: 0 4px 20px rgba(124,58,237,.45);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .2s, box-shadow .2s;
+    }
+    #chatToggleBtn:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(124,58,237,.55); }
+
+    #chatPanel {
+      position: fixed; bottom: 90px; right: 24px; z-index: 999;
+      width: 380px; max-height: 540px;
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.18);
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transform: translateY(16px) scale(.97);
+      opacity: 0; pointer-events: none;
+      transition: transform .22s ease, opacity .22s ease;
+    }
+    #chatPanel.open {
+      transform: translateY(0) scale(1);
+      opacity: 1; pointer-events: auto;
+    }
+    .chat-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      border-radius: 18px 18px 0 0;
+    }
+    .chat-header-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 700; color: #fff;
+    }
+    .chat-header-close {
+      background: rgba(255,255,255,.2); border: none; cursor: pointer;
+      color: #fff; width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; transition: background .12s;
+    }
+    .chat-header-close:hover { background: rgba(255,255,255,.35); }
+    #chatMessages {
+      flex: 1; overflow-y: auto; padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .chat-msg { max-width: 88%; font-size: 13px; line-height: 1.65; }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: #7c3aed; color: #fff;
+      padding: 8px 12px; border-radius: 14px 14px 2px 14px;
+    }
+    .chat-msg.ai {
+      align-self: flex-start;
+      background: var(--purple-light);
+      color: var(--text);
+      padding: 8px 12px; border-radius: 14px 14px 14px 2px;
+    }
+    .chat-msg.ai strong { color: #6d28d9; }
+    .chat-msg.ai ul,.chat-msg.ai ol { padding-left: 16px; margin: 3px 0; }
+    .chat-msg.meta {
+      align-self: flex-start; font-size: 11px; color: var(--muted);
+      background: none; padding: 0 4px;
+    }
+    .chat-thinking {
+      align-self: flex-start; font-size: 13px; color: var(--muted);
+      padding: 8px 12px;
+    }
+    .chat-thinking span { animation: blink 1.2s infinite; }
+    .chat-thinking span:nth-child(2) { animation-delay: .2s; }
+    .chat-thinking span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+    .chat-footer {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    #chatInput {
+      flex: 1; border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 10px; font-size: 13px; resize: none;
+      font-family: inherit; outline: none;
+      transition: border-color .15s;
+      max-height: 80px;
+    }
+    #chatInput:focus { border-color: #a855f7; }
+    #chatSendBtn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #7c3aed; border: none; cursor: pointer; color: #fff;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    #chatSendBtn:hover { background: #6d28d9; }
+    #chatSendBtn:disabled { background: #c4b5fd; cursor: not-allowed; }
+    @media (max-width: 440px) {
+      #chatPanel { width: calc(100vw - 16px); right: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -805,7 +961,21 @@
         <button class="sql-toggle-btn download-btn" onclick="downloadCSV()">
           <i class="fa-solid fa-download"></i>CSV
         </button>
+        <button class="ai-analyze-btn" id="aiAnalyzeBtn" onclick="runAiAnalysis()" style="display:none">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>AI&#x5206;&#x6790;
+        </button>
       </div>
+    </div>
+
+    <!-- AI 分析パネル -->
+    <div id="aiAnalysisPanel" style="display:none">
+      <div class="ai-panel-header">
+        <div class="ai-panel-title">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>AI&#x5206;&#x6790;&#x30EC;&#x30DD;&#x30FC;&#x30C8;
+        </div>
+        <button class="ai-panel-close" onclick="closeAiPanel()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="aiAnalysisContent"></div>
     </div>
 
     <!-- chart block -->
@@ -1086,6 +1256,7 @@
     renderTable();
     if (document.getElementById('chartBlock').style.display === 'block') renderChart();
     document.getElementById('resultArea').style.display = 'block';
+    showAiAnalyzeBtn();
   }
 
   /* ─── テーブル描画 ─────────────────────────────── */
@@ -1524,6 +1695,174 @@
       });
     }
   }
+
+  /* ─── AI 分析ボタン ────────────────────────────── */
+  function showAiAnalyzeBtn() {
+    document.getElementById('aiAnalyzeBtn').style.display = '';
+    document.getElementById('aiAnalysisPanel').style.display = 'none';
+    document.getElementById('aiAnalysisContent').innerHTML = '';
+  }
+
+  function runAiAnalysis() {
+    var btn     = document.getElementById('aiAnalyzeBtn');
+    var panel   = document.getElementById('aiAnalysisPanel');
+    var content = document.getElementById('aiAnalysisContent');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>分析中…';
+    panel.style.display = 'block';
+    content.innerHTML = '<div style="color:var(--muted);font-size:13px">Gemini が分析しています…</div>';
+
+    var rows = getDisplayRows();
+    var dataJson = JSON.stringify({ schema: lastData.schema, rows: rows });
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>AI分析';
+        if (!res.success) {
+          content.innerHTML = '<span style="color:red">エラー: ' + escHtml(res.error) + '</span>';
+          return;
+        }
+        content.innerHTML = simpleMarkdown(res.analysis);
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>AI分析';
+        content.innerHTML = '<span style="color:red">エラー: ' + escHtml(String(err)) + '</span>';
+      })
+      .analyzeResult(currentView, document.getElementById('period').value, includeTD, dataJson);
+  }
+
+  function closeAiPanel() {
+    document.getElementById('aiAnalysisPanel').style.display = 'none';
+  }
+
+  /* ─── AI チャット ─────────────────────────────── */
+  function toggleChat() {
+    document.getElementById('chatPanel').classList.toggle('open');
+  }
+
+  function chatKeydown(e) {
+    if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); sendChat(); }
+  }
+
+  function sendChat() {
+    var input = document.getElementById('chatInput');
+    var msg   = input.value.trim();
+    if (!msg) return;
+
+    var sendBtn = document.getElementById('chatSendBtn');
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    appendChatMsg('user', escHtml(msg));
+    var thinkId = appendThinking();
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        removeThinking(thinkId);
+        sendBtn.disabled = false;
+        if (!res.success) {
+          appendChatMsg('ai', '<span style="color:red">エラー: ' + escHtml(res.error) + '</span>');
+          return;
+        }
+        var VIEW_LABELS_JP = {
+          task_type:'作業項目別', user_name:'社員別', product_name:'品名別',
+          client:'顧客別', department:'請求先部門別',
+          rd:'研究開発区分別', rd_product_name:'研究開発品名別', utilization:'社員別稼働率'
+        };
+        var label = VIEW_LABELS_JP[res.viewType] || res.viewType;
+        appendChatMsg('meta', '参照: ' + label + '（' + res.period + '期）');
+        appendChatMsg('ai', simpleMarkdown(res.answer));
+      })
+      .withFailureHandler(function(err) {
+        removeThinking(thinkId);
+        sendBtn.disabled = false;
+        appendChatMsg('ai', '<span style="color:red">エラー: ' + escHtml(String(err)) + '</span>');
+      })
+      .chatQuery(msg);
+  }
+
+  function appendChatMsg(type, html) {
+    var div = document.createElement('div');
+    div.className = 'chat-msg ' + type;
+    div.innerHTML = html;
+    var msgs = document.getElementById('chatMessages');
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  var _thinkSeq = 0;
+  function appendThinking() {
+    var id  = 'think-' + (++_thinkSeq);
+    var div = document.createElement('div');
+    div.className = 'chat-thinking';
+    div.id = id;
+    div.innerHTML = '<span>●</span><span>●</span><span>●</span>';
+    var msgs = document.getElementById('chatMessages');
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return id;
+  }
+
+  function removeThinking(id) {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function simpleMarkdown(text) {
+    var html = escHtml(text);
+    // 見出し（#）
+    html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^##\s+(.+)$/gm,  '<h2>$1</h2>');
+    html = html.replace(/^#\s+(.+)$/gm,   '<h1>$1</h1>');
+    // 太字
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // リスト
+    html = html.replace(/^[\-\*]\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+    // 改行
+    html = html.replace(/\n/g, '<br>');
+    // <ul> 連続の場合に<br>が混入するのを整理
+    html = html.replace(/<br>(<\/?ul>|<\/?li>)/g, '$1');
+    html = html.replace(/(<\/?ul>|<\/?li>)<br>/g, '$1');
+    return html;
+  }
 </script>
+
+<!-- ════════════════════════════════════════════
+     AI チャット（フローティング）
+════════════════════════════════════════════ -->
+<button id="chatToggleBtn" onclick="toggleChat()" title="AI&#x30C1;&#x30E3;&#x30C3;&#x30C8;">
+  <i class="fa-solid fa-robot"></i>
+</button>
+
+<div id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-title">
+      <i class="fa-solid fa-robot"></i>AI&#x30C1;&#x30E3;&#x30C3;&#x30C8;
+    </div>
+    <button class="chat-header-close" onclick="toggleChat()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div id="chatMessages">
+    <div class="chat-msg ai">&#x3053;&#x3093;&#x306B;&#x3061;&#x306F;&#xFF01;&#x696D;&#x52D9;&#x30C7;&#x30FC;&#x30BF;&#x306B;&#x3064;&#x3044;&#x3066;&#x8CEA;&#x554F;&#x3057;&#x3066;&#x304F;&#x3060;&#x3055;&#x3044;&#x3002;<br>&#x4F8B;&#xFF1A;&#x300C;42&#x671F;&#x306E;&#x9867;&#x5BA2;&#x5225;&#x5DE5;&#x6570;&#x3092;&#x6559;&#x3048;&#x3066;&#x300D;</div>
+  </div>
+  <div class="chat-footer">
+    <textarea id="chatInput" rows="1" placeholder="&#x8CEA;&#x554F;&#x3092;&#x5165;&#x529B;&#xFF08;Shift+Enter&#x3067;&#x9001;&#x4FE1;&#xFF09;"
+      onkeydown="chatKeydown(event)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button id="chatSendBtn" onclick="sendChat()">
+      <i class="fa-solid fa-paper-plane"></i>
+    </button>
+  </div>
+</div>
 </body>
 </html>
