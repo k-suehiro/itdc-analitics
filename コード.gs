@@ -395,7 +395,8 @@ function chatQuery(userMessage) {
       answer:   callGemini(step3Prompt),
       viewType: viewType,
       period:   period,
-      sql:      sql
+      sql:      sql,
+      data:     result
     };
   } catch (e) {
     return { success: false, error: e.message };

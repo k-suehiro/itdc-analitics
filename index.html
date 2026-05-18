@@ -1774,6 +1774,17 @@
         var label = VIEW_LABELS_JP[res.viewType] || res.viewType;
         appendChatMsg('meta', '参照: ' + label + '（' + res.period + '期）');
         appendChatMsg('ai', simpleMarkdown(res.answer));
+
+        // 集計結果エリアにも反映
+        if (res.data) {
+          // 集計軸ボタンを切り替え
+          var axisBtn = document.querySelector('.axis-btn[data-view="' + res.viewType + '"]');
+          if (axisBtn) setViewType(axisBtn);
+          // 対象期プルダウンを合わせる
+          document.getElementById('period').value = res.period;
+          // 結果を描画
+          showResult({ success: true, sql: res.sql, data: res.data, tdData: null });
+        }
       })
       .withFailureHandler(function(err) {
         removeThinking(thinkId);
