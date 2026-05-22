@@ -266,15 +266,22 @@ function callGemini(prompt) {
   return body.candidates[0].content.parts[0].text;
 }
 
-// 次元列（1列目）と合計列（最終列）のみのTSVを返す（プロンプトのトークン節約）
+// 全列（次元＋月別＋合計）をTSV形式で返す（AI分析用）
 function formatDataAsTable(schema, rows, isUtil) {
-  var dimCol   = schema[0];
-  var totalCol = schema[schema.length - 1];
-  var unit     = isUtil ? '%' : 'h';
-  var lines    = [dimCol + '\t' + (isUtil ? '平均稼働率' : '合計工数')];
+  var unit  = isUtil ? '%' : 'h';
+  // ヘッダー行：月列は短縮表記
+  var header = schema.map(function(col, i) {
+    if (i === 0) return col;
+    return col.replace(/^(\d{4})-(\d{2})$/, function(_, y, m) { return y.slice(2) + '/' + m; });
+  });
+  var lines = [header.join('\t')];
   rows.forEach(function(row) {
-    var total = parseFloat(row[totalCol]);
-    lines.push((row[dimCol] || '(未設定)') + '\t' + (isNaN(total) ? '-' : total.toFixed(1) + unit));
+    var cells = schema.map(function(col, i) {
+      if (i === 0) return row[col] || '(未設定)';
+      var v = parseFloat(row[col]);
+      return isNaN(v) ? '-' : v.toFixed(1) + unit;
+    });
+    lines.push(cells.join('\t'));
   });
   return lines.join('\n');
 }
@@ -296,23 +303,26 @@ function analyzeResult(viewType, period, includeTD, dataJson) {
     var truncNote = isTrunc ? '（全' + data.rows.length + '行のうち上位30行）' : '（全' + data.rows.length + '行）';
 
     var prompt = [
-      'あなたはITDC（受託開発・印刷会社）の経営管理アナリストです。',
-      '以下の業務集計データを分析し、日本語でインサイトとアドバイスを提供してください。',
+      '# 指示',
+      '前置き・自己紹介・タイトル行は一切不要。以下のフォーマットのみで即座に回答せよ。',
       '',
-      '■ データ概要',
-      '  対象期間: ' + periodCfg.start + ' ～ ' + periodCfg.end,
-      '  集計軸: ' + (viewNames[viewType] || viewType),
-      '  集計値: ' + (isUtil ? '稼働率(%)' : '工数(時間)'),
-      '  TD製番: ' + (includeTD ? '含む' : '除外'),
+      '# コンテキスト',
+      'ITDC（受託開発・印刷会社）の業務集計データを分析する。',
+      '対象期間: ' + periodCfg.start + ' ～ ' + periodCfg.end,
+      '集計軸: ' + (viewNames[viewType] || viewType) + '　集計値: ' + (isUtil ? '稼働率(%)' : '工数(時間)') + '　TD製番: ' + (includeTD ? '含む' : '除外'),
       '',
-      '■ 集計データ ' + truncNote,
+      '# 集計データ（TSV形式）' + truncNote,
       table,
       '',
-      '■ 回答フォーマット（Markdownで300〜500字）',
-      '1. **主要な傾向・特徴**（2〜3点）: 数値を引用しながら具体的に',
-      '2. **注目すべき点・異常値**（あれば）',
-      '3. **経営へのアドバイス**（2〜3点）',
-      '数値には単位を必ず付けてください。'
+      '# 回答フォーマット（日本語Markdown・400字以内）',
+      '## 主要な傾向',
+      '- （数値を引用して2〜3点、月次トレンドがあれば言及）',
+      '',
+      '## 注目点・異常値',
+      '- （突出して高い/低い項目、急増/急減月など。なければ「特になし」）',
+      '',
+      '## 経営アドバイス',
+      '- （2〜3点。具体的な行動につながる提言）'
     ].join('\n');
 
     return { success: true, analysis: callGemini(prompt) };
