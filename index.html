@@ -615,6 +615,10 @@
       white-space: nowrap;
     }
     td:first-child { text-align: left; font-weight: 600; color: var(--text); }
+    td.col-dim { text-align: left; font-weight: 600; color: var(--text); }
+    td.col-seiban { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; min-width: 90px; }
+    th.col-dim, th.col-seiban { text-align: left; }
+    th.col-seiban { min-width: 90px; }
     tr:last-child td { border-bottom: none; }
     tbody tr:hover td { background: #f8fafc; }
     tbody tr:nth-child(even) td { background: #fafbfd; }
@@ -857,7 +861,7 @@
         <div class="select-wrapper">
           <i class="fa-solid fa-layer-group sel-icon"></i>
           <select id="period">
-            <option value="42">42期（2025年7月〜2026年4月）</option>
+            <option value="42">42期（2025年7月〜2026年6月）</option>
             <option value="41">41期（2024年7月〜2025年6月）</option>
             <option value="40">40期（2023年7月〜2024年6月）</option>
             <option value="39">39期（2022年7月〜2023年6月）</option>
@@ -1084,17 +1088,20 @@
     // 通常ビュー: tdRowsはTD製番のみデータ。差分を計算
     var schema   = lastData.schema;
     var totalCol = schema[schema.length - 1];
+    var dimCount = getDimColCount();
     var tdMap    = {};
     lastData.tdRows.forEach(function(row) {
-      tdMap[row[schema[0]]] = row;
+      tdMap[getRowKey(row)] = row;
     });
     var result = lastData.rows.map(function(row) {
-      var dim   = row[schema[0]];
-      var tdRow = tdMap[dim];
+      var key   = getRowKey(row);
+      var tdRow = tdMap[key];
       if (!tdRow) return row;
       var r = {};
-      r[schema[0]] = dim;
-      schema.slice(1).forEach(function(col) {
+      schema.slice(0, dimCount).forEach(function(col) {
+        r[col] = row[col];
+      });
+      schema.slice(dimCount).forEach(function(col) {
         var v  = parseFloat(row[col]   || 0);
         var td = parseFloat(tdRow[col] || 0);
         r[col] = Math.round((v - td) * 10) / 10;
@@ -1109,6 +1116,29 @@
 
   function isUtilView(v) {
     return v === 'utilization';
+  }
+
+  function getDimColCount() {
+    if (!lastData) return 1;
+    return lastData.schema.indexOf('製番') !== -1 ? 2 : 1;
+  }
+
+  function getRowKey(row) {
+    if (!lastData) return '';
+    if (lastData.schema.indexOf('製番') !== -1) return row['製番'] || row[lastData.schema[0]];
+    return row[lastData.schema[0]];
+  }
+
+  function getRowLabel(row) {
+    if (!lastData) return '(未設定)';
+    var schema = lastData.schema;
+    var name = row[schema[0]];
+    if (name == null || name === '') name = '(未設定)';
+    if (schema.indexOf('製番') !== -1) {
+      var seiban = row['製番'];
+      return seiban ? name + ' (' + seiban + ')' : name;
+    }
+    return name;
   }
 
   // 上期/下期トグル切り替え
@@ -1127,8 +1157,9 @@
   function getHalfColVisibility(schema) {
     if (utilHalf === 'all') return null;
     var lastIdx = schema.length - 1;
+    var dimCount = getDimColCount();
     return schema.map(function(col, i) {
-      if (i === 0 || i === lastIdx) return true;
+      if (i < dimCount || i === lastIdx) return true;
       var month = parseInt(col.split('-')[1], 10);
       return utilHalf === 'h1' ? month >= 7 : month <= 6;
     });
@@ -1137,8 +1168,9 @@
   // 半期の合計値を計算（稼働率ビュー=平均、それ以外=合計）
   function computeRowHalfTotal(row, schema, vis) {
     var vals = [];
+    var dimCount = getDimColCount();
     schema.forEach(function(col, i) {
-      if (i === 0 || i === schema.length - 1 || !vis[i]) return;
+      if (i < dimCount || i === schema.length - 1 || !vis[i]) return;
       var v = parseFloat(row[col]);
       if (!isNaN(v)) vals.push(v);
     });
@@ -1240,6 +1272,8 @@
       arrow.textContent = '▲';
       th.appendChild(span);
       th.appendChild(arrow);
+      if (col === '製番') th.classList.add('col-seiban');
+      else if (i < getDimColCount()) th.classList.add('col-dim');
       if (col === lastCol) th.classList.add('col-total');
       trH.appendChild(th);
     }
@@ -1290,6 +1324,7 @@
     totalRows = displayRows.length;
     updateSubBadges(totalRows, totalRows);
 
+    var dimCount = getDimColCount();
     var tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
 
@@ -1303,8 +1338,10 @@
         // 非表示列はdisplay:noneで保持（ソートのセルインデックス維持のため）
         if (vis && !vis[i]) { td.style.display = 'none'; tr.appendChild(td); continue; }
         var val = (vis && i === schema.length - 1) ? halfAvg : row[col];
-        if (i === 0) {
+        if (i < dimCount) {
           td.textContent = (val == null || val === '') ? '(未設定)' : val;
+          if (col === '製番') td.classList.add('col-seiban');
+          else td.classList.add('col-dim');
         } else {
           if (val === null || val === undefined || val === '') {
             td.textContent = '-'; td.classList.add('zero');
@@ -1351,27 +1388,43 @@
     var kLower  = keyword.toLowerCase();
     var matched = 0;
 
-    for (var i = 0; i < rows.length; i++) {
-      var firstCell = rows[i].cells[0];
-      if (!firstCell) continue;
-      var text = firstCell.textContent;
+    var dimCount = getDimColCount();
 
-      if (!keyword || text.toLowerCase().indexOf(kLower) !== -1) {
+    for (var i = 0; i < rows.length; i++) {
+      var searchable = '';
+      for (var d = 0; d < dimCount; d++) {
+        var dimCell = rows[i].cells[d];
+        if (dimCell) searchable += dimCell.textContent + '\t';
+      }
+      var isMatch = !keyword || searchable.toLowerCase().indexOf(kLower) !== -1;
+
+      if (isMatch) {
         rows[i].classList.remove('hidden-row');
-        // ハイライト
-        if (keyword) {
-          var idx = text.toLowerCase().indexOf(kLower);
-          firstCell.innerHTML =
-            escHtml(text.slice(0, idx)) +
-            '<span class="hl">' + escHtml(text.slice(idx, idx + keyword.length)) + '</span>' +
-            escHtml(text.slice(idx + keyword.length));
-        } else {
-          firstCell.textContent = text; // ハイライト解除
+        for (var d = 0; d < dimCount; d++) {
+          var dimCell = rows[i].cells[d];
+          if (!dimCell) continue;
+          var text = dimCell.textContent;
+          if (keyword) {
+            var idx = text.toLowerCase().indexOf(kLower);
+            if (idx !== -1) {
+              dimCell.innerHTML =
+                escHtml(text.slice(0, idx)) +
+                '<span class="hl">' + escHtml(text.slice(idx, idx + keyword.length)) + '</span>' +
+                escHtml(text.slice(idx + keyword.length));
+            } else {
+              dimCell.textContent = text;
+            }
+          } else {
+            dimCell.textContent = text;
+          }
         }
         matched++;
       } else {
         rows[i].classList.add('hidden-row');
-        firstCell.textContent = text; // ハイライト解除
+        for (var d = 0; d < dimCount; d++) {
+          var dimCell = rows[i].cells[d];
+          if (dimCell) dimCell.textContent = dimCell.textContent;
+        }
       }
     }
 
@@ -1488,7 +1541,7 @@
       var halfAvg = vis ? computeRowHalfTotal(row, rawSchema, vis) : null;
       var cells = csvSchema.map(function(col, fi) {
         var origIdx = rawSchema.indexOf(col);
-        if (origIdx === 0) {
+        if (origIdx < getDimColCount()) {
           var v = (row[col] == null || row[col] === '') ? '(未設定)' : row[col];
           return '"' + String(v).replace(/"/g, '""') + '"';
         }
@@ -1608,12 +1661,13 @@
 
     if (isPercent) {
       // 折れ線グラフ：月別稼働率推移（上期/下期フィルタを適用）
-      var monthCols = schema.slice(1, schema.length - 1).filter(function(col, i) {
-        return !vis || vis[i + 1]; // schema[0]が次元列なので+1オフセット
+      var dimCount = getDimColCount();
+      var monthCols = schema.slice(dimCount, schema.length - 1).filter(function(col, i) {
+        return !vis || vis[i + dimCount];
       });
       var datasets = sorted.map(function(row, i) {
         return {
-          label: row[schema[0]] || '(未設定)',
+          label: getRowLabel(row),
           data: monthCols.map(function(m) {
             var v = parseFloat(row[m]);
             return isNaN(v) ? null : v;
@@ -1656,7 +1710,7 @@
 
     } else {
       // 横棒グラフ：合計値ランキング
-      var labels = sorted.map(function(r) { return r[schema[0]] || '(未設定)'; });
+      var labels = sorted.map(function(r) { return getRowLabel(r); });
       var data   = sorted.map(function(r) {
         var raw = parseFloat(r[lastCol] || 0);
         return isNaN(raw) ? 0 : (isAmount ? parseFloat((raw * 4.2).toFixed(1)) : raw);

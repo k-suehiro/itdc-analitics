@@ -36,17 +36,17 @@ function getPeriodConfig(period) {
     '39':    { startYear: 2022, startMonth:  7, count: 12, start: '2022-07-01', end: '2023-06-30' },
     '40':    { startYear: 2023, startMonth:  7, count: 12, start: '2023-07-01', end: '2024-06-30' },
     '41':    { startYear: 2024, startMonth:  7, count: 12, start: '2024-07-01', end: '2025-06-30' },
-    '42':    { startYear: 2025, startMonth:  7, count: 10, start: '2025-07-01', end: '2026-04-30' },
+    '42':    { startYear: 2025, startMonth:  7, count: 12, start: '2025-07-01', end: '2026-06-30' },
     // 前半（7月〜12月）
     '39_H1': { startYear: 2022, startMonth:  7, count:  6, start: '2022-07-01', end: '2022-12-31' },
     '40_H1': { startYear: 2023, startMonth:  7, count:  6, start: '2023-07-01', end: '2023-12-31' },
     '41_H1': { startYear: 2024, startMonth:  7, count:  6, start: '2024-07-01', end: '2024-12-31' },
     '42_H1': { startYear: 2025, startMonth:  7, count:  6, start: '2025-07-01', end: '2025-12-31' },
-    // 後半（1月〜6月、42期のみ4月まで）
+    // 後半（1月〜6月）
     '39_H2': { startYear: 2023, startMonth:  1, count:  6, start: '2023-01-01', end: '2023-06-30' },
     '40_H2': { startYear: 2024, startMonth:  1, count:  6, start: '2024-01-01', end: '2024-06-30' },
     '41_H2': { startYear: 2025, startMonth:  1, count:  6, start: '2025-01-01', end: '2025-06-30' },
-    '42_H2': { startYear: 2026, startMonth:  1, count:  4, start: '2026-01-01', end: '2026-04-30' },
+    '42_H2': { startYear: 2026, startMonth:  1, count:  6, start: '2026-01-01', end: '2026-06-30' },
   };
   return all[period];
 }
@@ -94,7 +94,8 @@ function buildSql(viewType, period, tdOnly) {
       expr:    "COALESCE(product_name, '未設定')",
       label:   '品名',
       where:   '',
-      orderBy: 'dim'
+      orderBy: 'dim, job_id',
+      jobIdCol: true
     },
 
     client: {
@@ -164,7 +165,8 @@ function buildSql(viewType, period, tdOnly) {
       expr:    "COALESCE(product_name, '未設定')",
       label:   '品名',
       where:   "AND LEFT(job_id, 2) = 'TD'",
-      orderBy: 'dim'
+      orderBy: 'dim, job_id',
+      jobIdCol: true
     }
   };
 
@@ -178,11 +180,18 @@ function buildSql(viewType, period, tdOnly) {
     `ROUND(SUM(CASE WHEN FORMAT_DATE('%Y-%m', report_date) = '${m}' THEN hours ELSE 0 END), 1) AS \`${m}\``
   ).join(',\n    ');
 
+  const withJobId = !!dim.jobIdCol;
+  const baseSelect = withJobId
+    ? `report_date,\n    hours,\n    ${dim.expr} AS dim,\n    COALESCE(job_id, '未設定') AS job_id`
+    : `report_date,\n    hours,\n    ${dim.expr} AS dim`;
+  const selectDims = withJobId
+    ? `dim AS \`${dim.label}\`,\n  job_id AS \`製番\`,`
+    : `dim AS \`${dim.label}\`,`;
+  const groupBy = withJobId ? 'dim, job_id' : 'dim';
+
   return `WITH base AS (
   SELECT
-    report_date,
-    hours,
-    ${dim.expr} AS dim
+    ${baseSelect}
   FROM \`itdc-wdr.daily_reports.reports\`
   WHERE report_date BETWEEN '${dates.start}' AND '${dates.end}'
   AND job_id IS NOT NULL
@@ -191,11 +200,11 @@ function buildSql(viewType, period, tdOnly) {
   ${dim.where}
 )
 SELECT
-  dim AS \`${dim.label}\`,
+  ${selectDims}
   ${monthCols},
   ROUND(SUM(hours), 1) AS \`合計\`
 FROM base
-GROUP BY dim
+GROUP BY ${groupBy}
 ORDER BY ${dim.orderBy}`;
 }
 
@@ -348,7 +357,7 @@ function chatQuery(userMessage) {
       '  "rd":研究開発区分別  "rd_product_name":研究開発品名別  "utilization":社員別稼働率(%)',
       '',
       '■ period の選択肢: "39"〜"42"（期指定なければ最新の"42"）',
-      '  "42"=42期(2025/7〜2026/4)  "41"=41期(2024/7〜2025/6)  "40"=40期  "39"=39期',
+      '  "42"=42期(2025/7〜2026/6)  "41"=41期(2024/7〜2025/6)  "40"=40期  "39"=39期',
       '  今日は ' + todayStr,
       '',
       '■ 出力フォーマット（このJSONのみ・余分なテキスト不要）',
