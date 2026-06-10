@@ -1,7 +1,6 @@
-// ITDC Analytics v1.1.1
-// - 品名ビューに製番列を追加
-// - 行絞り込みで製番も検索対象に
-// - 42期を他期同様7月〜6月の通期（12ヶ月）に統一
+// ITDC Analytics v1.1.2
+// - 結果テーブルの左右余白を調整
+// - 数値表示を小数点第2位に統一（BigQuery集計・表示・CSV・グラフ）
 
 const PROJECT_ID = 'itdc-wdr';
 
@@ -182,7 +181,7 @@ function buildSql(viewType, period, tdOnly) {
     : '';
 
   const monthCols = months.map(m =>
-    `ROUND(SUM(CASE WHEN FORMAT_DATE('%Y-%m', report_date) = '${m}' THEN hours ELSE 0 END), 1) AS \`${m}\``
+    `ROUND(SUM(CASE WHEN FORMAT_DATE('%Y-%m', report_date) = '${m}' THEN hours ELSE 0 END), 2) AS \`${m}\``
   ).join(',\n    ');
 
   const withJobId = !!dim.jobIdCol;
@@ -207,7 +206,7 @@ function buildSql(viewType, period, tdOnly) {
 SELECT
   ${selectDims}
   ${monthCols},
-  ROUND(SUM(hours), 1) AS \`合計\`
+  ROUND(SUM(hours), 2) AS \`合計\`
 FROM base
 GROUP BY ${groupBy}
 ORDER BY ${dim.orderBy}`;
@@ -230,7 +229,7 @@ function buildUtilizationSql(viewType, period, tdExclude) {
   const denominator = "SUM(hours)";
 
   const monthCols = months.map(m =>
-    `ROUND(MAX(CASE WHEN ym = '${m}' THEN SAFE_DIVIDE(num_hours, total_hours) * 100 END), 1) AS \`${m}\``
+    `ROUND(MAX(CASE WHEN ym = '${m}' THEN SAFE_DIVIDE(num_hours, total_hours) * 100 END), 2) AS \`${m}\``
   ).join(',\n    ');
 
   return `WITH monthly AS (
@@ -246,7 +245,7 @@ function buildUtilizationSql(viewType, period, tdExclude) {
 SELECT
   user_name AS \`社員名\`,
   ${monthCols},
-  ROUND(SAFE_DIVIDE(SUM(num_hours), SUM(total_hours)) * 100, 1) AS \`合計\`
+  ROUND(SAFE_DIVIDE(SUM(num_hours), SUM(total_hours)) * 100, 2) AS \`合計\`
 FROM monthly
 GROUP BY user_name
 ORDER BY user_name`;
@@ -293,7 +292,7 @@ function formatDataAsTable(schema, rows, isUtil) {
     var cells = schema.map(function(col, i) {
       if (i === 0) return row[col] || '(未設定)';
       var v = parseFloat(row[col]);
-      return isNaN(v) ? '-' : v.toFixed(1) + unit;
+      return isNaN(v) ? '-' : v.toFixed(2) + unit;
     });
     lines.push(cells.join('\t'));
   });
