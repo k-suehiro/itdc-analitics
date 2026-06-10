@@ -1,3 +1,8 @@
+// ITDC Analytics v1.1.1
+// - 品名ビューに製番列を追加
+// - 行絞り込みで製番も検索対象に
+// - 42期を他期同様7月〜6月の通期（12ヶ月）に統一
+
 const PROJECT_ID = 'itdc-wdr';
 
 function doGet() {
